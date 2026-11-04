@@ -1,0 +1,115 @@
+name: exam-platform
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+
+    platform: linux/amd64
+    container_name: exam-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Passw0rd123}
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: exam-sqlserver-init
+    restart: "no"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Passw0rd123}
+      DB_NAME: ${DB_NAME:-ExamPlatform}
+    volumes:
+      - ./db/migrations:/migrations:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+
+        sql() { /opt/mssql-tools18/bin/sqlcmd -C -b -I -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" "$$@"; }
+
+        sql -Q "IF DB_ID('$$DB_NAME') IS NULL CREATE DATABASE [$$DB_NAME];"
+        echo "Base '$$DB_NAME' lista."
+
+        HAS_SCHEMA=$$(sql -d "$$DB_NAME" -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN OBJECT_ID('dbo.Users','U') IS NULL THEN 0 ELSE 1 END" | tr -d '[:space:]')
+
+        if [ "$$HAS_SCHEMA" = "0" ] && [ -f /migrations/001_schema.sql ]; then
+          echo "Aplicando 001_schema.sql ..."
+          sql -d "$$DB_NAME" -i /migrations/001_schema.sql
+          echo "Esquema aplicado."
+        elif [ "$$HAS_SCHEMA" = "1" ]; then
+          echo "El esquema ya existe, no se hace nada."
+        else
+          echo "AVISO: no se encontro db/migrations/001_schema.sql; solo se creo la base vacia."
+        fi
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: exam-rustfs
+    restart: unless-stopped
+
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:-secretito123}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+
+    volumes:
+      - rustfs_data:/data
+
+    command: ["/data"]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  rustfs-init:
+    image: amazon/aws-cli:latest
+    container_name: exam-rustfs-init
+    restart: "no"
+
+    depends_on:
+      rustfs:
+        condition: service_healthy
+
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-rustfsadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-secretito123}
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${S3_BUCKET:-exam-files}
+
+    entrypoint: ["/bin/sh", "-c"]
+
+    command:
+      - |
+        aws --endpoint-url http://rustfs:9000 s3 mb s3://$$S3_BUCKET || true
+        echo "Bucket $$S3_BUCKET listo."
+volumes:
+  mssql_data:
+  rustfs_data:
