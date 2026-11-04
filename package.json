@@ -11,7 +11,8 @@
   "workspaces": [
    
     "backend",
-     "frontend"
+     "frontend",
+     "packages/*"
   ],
   "keywords": [],
   "author": "",
