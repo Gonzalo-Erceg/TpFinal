@@ -1,15 +1,27 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Angular
+.angular/
+**/.angular/
 
 # Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+dist/
+**/dist/
+tmp/
+out-tsc/
+bazel-out/
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
 
 # IDEs and editors
 .idea/
@@ -27,23 +39,17 @@ yarn-error.log
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/mcp.json
-.history/*
+.history/
 
 # Miscellaneous
-/.angular/cache
 .sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
+connect.lock
+coverage/
+libpeerconnection.log
 testem.log
-/typings
+typings/
 __screenshots__/
 
 # System files
 .DS_Store
 Thumbs.db
-
-
-
-
-.env
