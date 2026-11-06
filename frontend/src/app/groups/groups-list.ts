@@ -19,11 +19,11 @@ export class ListaGrupos implements OnInit {
   mostrarDialogo = signal(false);
   mensajeExito = signal<string | null>(null);
 
-  // Texto en español que se muestra para cada estado de membresía
+  // Texto que se muestra para cada estado de membresía
   etiquetasEstado: Record<EstadoMembresia, string> = {
-    PENDING: 'Pendiente',
-    ACTIVE: 'Activo',
-    REJECTED: 'Rechazado',
+    PENDING: 'PENDIENTE',
+    ACTIVE: 'ACTIVO',
+    REJECTED: 'RECHAZADO',
   };
 
   ngOnInit(): void {
@@ -55,7 +55,6 @@ export class ListaGrupos implements OnInit {
     this.mostrarDialogo.set(false);
   }
 
-  // Se ejecuta cuando el diálogo avisa que la solicitud se envió bien
   alEnviarSolicitud(grupo: Grupo): void {
     this.grupos.update((lista) => [...lista, grupo]);
     this.mostrarDialogo.set(false);

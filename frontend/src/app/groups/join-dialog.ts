@@ -52,6 +52,8 @@ export class DialogoUnirse {
 
   private mensajeParaError(error: HttpErrorResponse): string {
     switch (error.status) {
+      case 400:
+        return 'El código no tiene un formato válido.';
       case 404:
         return 'El código no existe. Revisalo e intentá de nuevo.';
       case 409:
