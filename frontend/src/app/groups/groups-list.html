@@ -1,0 +1,49 @@
+<section class="grupos">
+  <div class="cabecera">
+    <div>
+      <p class="etiqueta">Alumno</p>
+      <h2>Mis grupos</h2>
+      <p class="subtitulo">Consultá tus grupos y el estado de cada solicitud.</p>
+    </div>
+    <button type="button" (click)="abrirDialogo()">Unirme con código</button>
+  </div>
+
+  @if (mensajeExito()) {
+    <p class="exito" role="status">{{ mensajeExito() }}</p>
+  }
+
+  @if (cargando()) {
+    <p>Cargando tus grupos...</p>
+  } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    <button type="button" (click)="cargarGrupos()">Reintentar</button>
+  } @else if (grupos().length === 0) {
+    <p>Todavía no pertenecés a ningún grupo.</p>
+  } @else {
+    <ul class="lista">
+      @for (grupo of grupos(); track grupo.id) {
+        <li class="tarjeta">
+          <span class="inicial" aria-hidden="true">{{ grupo.materia.charAt(0) }}</span>
+
+          <div class="info">
+            <h3>{{ grupo.nombre }}</h3>
+            <p>{{ grupo.materia }} · {{ grupo.profesor }}</p>
+          </div>
+
+          <span
+            class="estado"
+            [class.pendiente]="grupo.estadoMembresia === 'PENDING'"
+            [class.activo]="grupo.estadoMembresia === 'ACTIVE'"
+            [class.rechazado]="grupo.estadoMembresia === 'REJECTED'"
+          >
+            {{ etiquetasEstado[grupo.estadoMembresia] }}
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+@if (mostrarDialogo()) {
+  <app-dialogo-unirse (solicitudEnviada)="alEnviarSolicitud($event)" (cerrar)="cerrarDialogo()" />
+}
