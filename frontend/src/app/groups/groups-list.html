@@ -1,48 +1,99 @@
-<section class="grupos">
-  <div class="cabecera">
+<main class="pagina">
+  <nav class="barra" aria-label="Navegación principal">
+    <a class="boton-barra" [routerLink]="rutaPerfil">
+      <span class="avatar" aria-hidden="true">ES</span>
+      <span class="boton-texto"><strong>Estudiante</strong><small>Mi perfil</small></span>
+    </a>
+
+    <div class="barra-derecha">
+      <button
+        type="button"
+        class="boton-barra boton-icono"
+        (click)="alternarTema()"
+        [attr.aria-pressed]="modoNocturno()"
+        [attr.aria-label]="modoNocturno() ? 'Activar modo claro' : 'Activar modo nocturno'"
+        [title]="modoNocturno() ? 'Activar modo claro' : 'Activar modo nocturno'"
+      >
+        <span aria-hidden="true">{{ modoNocturno() ? '☀' : '☾' }}</span>
+      </button>
+
+      <a class="boton-barra" [routerLink]="rutaInicio">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+          <path d="m3 10 9-7 9 7v10h-7v-6h-4v6H3z" />
+        </svg>
+        Inicio
+      </a>
+    </div>
+  </nav>
+
+  <header class="encabezado">
     <div>
-      <p class="etiqueta">Alumno</p>
-      <h2>Mis grupos</h2>
+      <h1 class="titulo">Mis grupos</h1>
       <p class="subtitulo">Consultá tus grupos y el estado de cada solicitud.</p>
     </div>
-    <button type="button" (click)="abrirDialogo()">Unirme con código</button>
-  </div>
+
+    <button type="button" class="boton-unirme" (click)="abrirDialogo()">
+      <span class="mas" aria-hidden="true">+</span> Unirme con código
+    </button>
+  </header>
 
   @if (mensajeExito()) {
     <p class="exito" role="status">{{ mensajeExito() }}</p>
   }
 
   @if (cargando()) {
-    <p>Cargando tus grupos...</p>
+    <p class="aviso">Cargando tus grupos...</p>
   } @else if (mensajeError()) {
     <p class="error">{{ mensajeError() }}</p>
-    <button type="button" (click)="cargarGrupos()">Reintentar</button>
+    <button type="button" class="boton-unirme" (click)="cargarGrupos()">Reintentar</button>
   } @else if (grupos().length === 0) {
-    <p>Todavía no pertenecés a ningún grupo.</p>
+    <div class="vacio">
+      <strong>Todavía no tenés grupos</strong>
+      Tocá "Unirme con código" e ingresá el código que te compartió tu docente.
+    </div>
   } @else {
-    <ul class="lista">
-      @for (grupo of grupos(); track grupo.id) {
-        <li class="tarjeta">
-          <span class="inicial" aria-hidden="true">{{ grupo.materia.charAt(0) }}</span>
-
-          <div class="info">
-            <h3>{{ grupo.nombre }}</h3>
-            <p>{{ grupo.materia }} · {{ grupo.profesor }}</p>
-          </div>
-
-          <span
-            class="estado"
-            [class.pendiente]="grupo.estadoMembresia === 'PENDING'"
-            [class.activo]="grupo.estadoMembresia === 'ACTIVE'"
-            [class.rechazado]="grupo.estadoMembresia === 'REJECTED'"
-          >
-            {{ etiquetasEstado[grupo.estadoMembresia] }}
-          </span>
-        </li>
+    <div class="filtros" role="group" aria-label="Filtrar grupos por estado">
+      @for (opcion of opcionesFiltro; track opcion.valor) {
+        <button
+          type="button"
+          class="filtro"
+          [class.seleccionado]="filtro() === opcion.valor"
+          [attr.data-estado]="opcion.valor === 'TODOS' ? null : opcion.valor"
+          [attr.aria-pressed]="filtro() === opcion.valor"
+          (click)="elegirFiltro(opcion.valor)"
+        >
+          {{ opcion.etiqueta }}
+          <span class="cantidad">{{ cantidades()[opcion.valor] }}</span>
+        </button>
       }
-    </ul>
+    </div>
+
+    @if (gruposFiltrados().length === 0) {
+      <div class="vacio">
+        <strong>No tenés grupos con este estado</strong>
+        Probá con otro filtro o mirá todos tus grupos.
+      </div>
+    } @else {
+      <div class="grupos">
+        @for (grupo of gruposFiltrados(); track grupo.id) {
+          <article class="grupo" [attr.data-estado]="grupo.estadoMembresia">
+            <div class="grupo-cabecera">
+              <span class="inicial" aria-hidden="true">{{ grupo.materia.charAt(0) }}</span>
+              <span class="chip">
+                <span aria-hidden="true">{{ iconosEstado[grupo.estadoMembresia] }}</span>
+                {{ etiquetasEstado[grupo.estadoMembresia] }}
+              </span>
+            </div>
+
+            <h3 class="grupo-titulo">{{ grupo.materia }}</h3>
+            <p class="grupo-meta">{{ grupo.nombre }} · {{ grupo.profesor }}</p>
+            <p class="grupo-ayuda">{{ ayudaEstado[grupo.estadoMembresia] }}</p>
+          </article>
+        }
+      </div>
+    }
   }
-</section>
+</main>
 
 @if (mostrarDialogo()) {
   <app-dialogo-unirse (solicitudEnviada)="alEnviarSolicitud($event)" (cerrar)="cerrarDialogo()" />

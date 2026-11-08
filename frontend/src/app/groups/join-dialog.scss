@@ -1,48 +1,116 @@
 .fondo {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 20px;
+  background: rgba(20, 18, 29, 0.55);
+  backdrop-filter: blur(4px);
 }
 
 .dialogo {
-  background: #fff;
-  border-radius: 8px;
-  padding: 1.5rem;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: var(--white, #fff);
+  color: var(--ink, #242332);
+  border: 1px solid var(--border, #e9e6ea);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 26px 100px #100d2140;
 
   h3 {
-    margin: 0 0 0.5rem;
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--muted, #8b8998);
   }
 
   label {
     display: block;
-    margin-top: 1rem;
-    font-weight: 600;
+    margin: 22px 0 8px;
+    font-size: 13px;
+    font-weight: 700;
   }
 
   input {
     width: 100%;
-    margin-top: 0.25rem;
-    padding: 0.5rem;
-    border: 1px solid #aaa;
-    border-radius: 4px;
+    height: 50px;
+    padding: 0 14px;
     box-sizing: border-box;
-  }
-}
+    border: 1px solid var(--border, #e9e6ea);
+    background: var(--bg, #f8f7f5);
+    border-radius: 12px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink, #242332);
+    outline: none;
 
-.error {
-  color: #8a1f2b;
-  margin: 0.5rem 0 0;
+    &:focus {
+      border-color: #987bcf;
+      box-shadow: 0 0 0 3px #987bcf24;
+    }
+
+    &.ng-invalid.ng-touched {
+      border-color: var(--error-acento, #d1495b);
+    }
+  }
+
+  // Más específico que ".dialogo p", para que el error se vea en rojo
+  .error {
+    margin-top: 12px;
+    padding: 11px 13px;
+    background: var(--error-fondo, #fbe4e7);
+    border: 1px solid var(--error-borde, #f1c2c8);
+    border-radius: 10px;
+    color: var(--error-texto, #a3303f);
+    font-size: 13px;
+  }
 }
 
 .acciones {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
+  gap: 10px;
+  margin-top: 24px;
+
+  button {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border, #e9e6ea);
+    background: var(--white, #fff);
+    color: var(--ink, #242332);
+
+    &[type='submit'] {
+      background: var(--boton-fondo, #382e54);
+      border-color: var(--boton-fondo, #382e54);
+      color: var(--boton-texto, #fff);
+
+      &:hover {
+        background: var(--boton-hover, #544077);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
 }
