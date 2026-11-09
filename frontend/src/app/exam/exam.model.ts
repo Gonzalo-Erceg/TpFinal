@@ -17,6 +17,8 @@ export interface Examen {
   id: number;
   titulo: string;
   materia: string;
+  // La calcula el backend cuando el alumno empieza el intento. Viene en ISO y UTC (ej. 2026-11-09T18:30:00.000Z)
+  fechaLimite: string;
   preguntas: Pregunta[];
 }
 

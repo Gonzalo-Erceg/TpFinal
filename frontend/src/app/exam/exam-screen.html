@@ -11,6 +11,30 @@
         <h1 class="titulo">{{ examenCargado.titulo }}</h1>
       </div>
 
+      @if (tiempoTerminado()) {
+        <p class="temporizador terminado" role="alert">
+          <span aria-hidden="true">⏱</span>
+          <strong>Tiempo terminado</strong>
+        </p>
+      } @else {
+        <p class="temporizador" role="timer" aria-label="Tiempo restante del examen">
+          <span aria-hidden="true">⏱</span>
+          <span class="temporizador-etiqueta">Tiempo restante</span>
+          <strong class="temporizador-valor">{{ tiempoRestante() }}</strong>
+        </p>
+      }
+
+      <p class="guardado" role="status" [class.guardando]="estadoGuardado() === 'guardando'" [class.listo]="estadoGuardado() === 'guardado'">
+        @switch (estadoGuardado()) {
+          @case ('guardando') {
+            <span aria-hidden="true">⟳</span> Guardando...
+          }
+          @case ('guardado') {
+            <span aria-hidden="true">✓</span> Guardado
+          }
+        }
+      </p>
+
       <div class="progreso">
         <p class="progreso-texto">
           <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> respondidas

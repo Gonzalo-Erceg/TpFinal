@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { Examen } from './exam.model';
+import { Examen, Respuesta } from './exam.model';
+
+const DURACION_DE_PRUEBA = 30;
 
 @Injectable({ providedIn: 'root' })
 export class ExamenService {
@@ -9,6 +11,8 @@ export class ExamenService {
     id: 1,
     titulo: 'Primer parcial',
     materia: 'Programación I',
+    // Simula lo que haría el backend: inicio del intento + duración elegida por el docente
+    fechaLimite: new Date(Date.now() + DURACION_DE_PRUEBA * 60 * 1000).toISOString(),
     preguntas: [
       {
         id: 1,
@@ -76,5 +80,12 @@ export class ExamenService {
   // Datos simulados: cuando exista el backend se reemplaza por la llamada a la API
   obtenerExamen(): Observable<Examen> {
     return of(this.examenDePrueba).pipe(delay(500));
+  }
+
+  // Simula que el servidor tarda casi un segundo en guardar la respuesta
+  guardarRespuesta(idPregunta: number, valor: Respuesta): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(), 800);
+    });
   }
 }
