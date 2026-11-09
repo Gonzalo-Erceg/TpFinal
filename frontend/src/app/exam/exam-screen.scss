@@ -1,0 +1,335 @@
+:host {
+    --blanco: #fff;
+    --ink: #242332;
+    --muted: #8b8998;
+    --border: #e9e6ea;
+    --texto-suave: #6f6b7c;
+    --oscuro: #1c1530;
+    --violeta: #6752b2;
+    --lila-tarjeta: #f3ecfc;
+    --lila-borde: #e4d9f6;
+    --lila-sombra: #d8cbee;
+
+    display: block;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    background:
+        radial-gradient(ellipse 52% 42% at 90% -16%, #efedf7 0%, transparent 72%),
+        #f8f8f9;
+}
+
+.pagina {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 40px clamp(20px, 4vw, 56px) 56px;
+}
+
+.encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+}
+
+.etiqueta {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.titulo {
+    margin: 0;
+    font-size: clamp(30px, 3.6vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 1.08;
+}
+
+.progreso {
+    flex: 0 1 360px;
+    min-width: 260px;
+}
+
+.progreso-texto {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: var(--texto-suave);
+
+    strong {
+        color: var(--ink);
+    }
+}
+
+.barra {
+    height: 10px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--lila-borde);
+}
+
+.barra-relleno {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--violeta);
+    transition: width 0.3s;
+}
+
+.contenido {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.navegador {
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    padding: 20px;
+    background: var(--blanco);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+}
+
+.navegador-titulo {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 800;
+
+    span {
+        color: var(--muted);
+        font-weight: 500;
+    }
+}
+
+.lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        background: #f6f3fb;
+    }
+
+    &:focus-visible {
+        outline: 3px solid #a58bdc;
+        outline-offset: 2px;
+    }
+
+    &.actual {
+        background: var(--lila-tarjeta);
+        border-color: var(--lila-borde);
+
+        .numero {
+            border-color: var(--oscuro);
+            box-shadow: 0 0 0 3px #987bcf40;
+        }
+    }
+
+    &.respondida {
+        .numero {
+            background: var(--violeta);
+            border-color: var(--violeta);
+            color: #fff;
+
+            &::after {
+                content: '✓';
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                width: 16px;
+                height: 16px;
+                display: grid;
+                place-items: center;
+                background: #fff;
+                border: 1px solid var(--violeta);
+                border-radius: 50%;
+                color: var(--violeta);
+                font-size: 10px;
+            }
+        }
+
+        .item-estado {
+            color: var(--violeta);
+            font-weight: 700;
+        }
+    }
+}
+
+.numero {
+    position: relative;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.item-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.item-enunciado {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.item-estado {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.pregunta {
+    padding: 32px;
+    background: var(--blanco);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 8px 28px #26233b0a;
+}
+
+.pregunta-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pregunta-numero {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--violeta);
+}
+
+.pregunta-meta {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.enunciado {
+    margin: 14px 0 24px;
+    font-size: clamp(22px, 2.4vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+}
+
+.acciones {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+.boton {
+    padding: 12px 22px;
+    background: var(--oscuro);
+    border: 1px solid var(--oscuro);
+    border-radius: 12px;
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.18s;
+
+    &:hover:not(:disabled) {
+        opacity: 0.88;
+    }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        outline: 3px solid #a58bdc;
+        outline-offset: 2px;
+    }
+
+    &.secundario {
+        background: #fff;
+        border-color: var(--border);
+        color: var(--ink);
+    }
+}
+
+.aviso {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.error {
+    color: #a3303f;
+    font-size: 14px;
+}
+
+// En pantallas chicas la lista de preguntas pasa a ser una fila de números
+@media (max-width: 900px) {
+    .contenido {
+        grid-template-columns: 1fr;
+    }
+
+    .navegador {
+        position: static;
+        max-height: none;
+    }
+
+    .lista {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .item {
+        width: auto;
+        padding: 6px;
+    }
+
+    .item-texto {
+        display: none;
+    }
+
+    .pregunta {
+        padding: 24px 20px;
+    }
+}

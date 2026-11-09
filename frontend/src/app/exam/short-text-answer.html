@@ -1,0 +1,10 @@
+<label class="solo-lectores" [attr.for]="'texto-' + pregunta().id">{{ pregunta().enunciado }}</label>
+<textarea
+  [id]="'texto-' + pregunta().id"
+  rows="5"
+  [maxLength]="limite"
+  placeholder="Escribí tu respuesta acá"
+  [value]="texto()"
+  (input)="alEscribir($event)"
+></textarea>
+<p class="contador">{{ texto().length }} / {{ limite }}</p>
