@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AutenticacionService, RUTAS_POR_ROL } from '../auth.service';
 
 @Component({
@@ -13,6 +13,11 @@ import { AutenticacionService, RUTAS_POR_ROL } from '../auth.service';
 export class InicioSesion {
   private autenticacion = inject(AutenticacionService);
   private router = inject(Router);
+
+  private ruta = inject(ActivatedRoute);
+
+  // Viene del registro: /login?registrado=si
+  registroExitoso = this.ruta.snapshot.queryParamMap.get('registrado') === 'si';
 
   formulario = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),

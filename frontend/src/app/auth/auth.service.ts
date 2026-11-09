@@ -3,10 +3,10 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError, timer } from 'rxjs';
 import { delay, map, switchMap, tap } from 'rxjs/operators';
-import { RolUsuario, UsuarioPublico } from './auth.model';
+import {DatosRegistro, RolUsuario, UsuarioPublico } from './auth.model';
 
 // Pasar a false cuando POST /auth/login funcione en el backend
-const USAR_DATOS_DE_PRUEBA = true;
+const USAR_DATOS_DE_PRUEBA = false;
 
 const CLAVE_TOKEN = 'aula-token';
 const CLAVE_USUARIO = 'aula-usuario';
@@ -74,6 +74,24 @@ export class AutenticacionService {
       map((respuesta) => this.aUsuario(respuesta.user)),
     );
   }
+
+  registrar(datos: DatosRegistro): Observable<void> {
+    const cuerpo = {
+      firstName: datos.nombre.trim(),
+      lastName: datos.apellido.trim(),
+      email: datos.email.trim().toLowerCase(),
+      password: datos.contrasena,
+      role: datos.rol,
+    };
+
+    const respuesta$ = USAR_DATOS_DE_PRUEBA
+      ? this.registrarDePrueba(cuerpo, datos.contrasena)
+      : this.http.post('/auth/register', cuerpo);
+
+    // Después de registrarse va al login, así que no se guarda la sesión
+    return respuesta$.pipe(map(() => undefined));
+  }
+
 
   cerrarSesion(): void {
     this.tokenActual.set(null);
@@ -153,6 +171,22 @@ export class AutenticacionService {
     }
 
     return of({ token: 'token-de-prueba', user: encontrado.usuario }).pipe(delay(800));
+  }
+
+  private registrarDePrueba(cuerpo: Omit<UsuarioApi, 'id'>, contrasena: string): Observable<unknown> {
+    // El backend real devolvería 409
+    if (this.usuariosDePrueba.some((u) => u.usuario.email === cuerpo.email)) {
+      return this.errorConDemora(409);
+    }
+
+    // Así se puede iniciar sesión con la cuenta recién creada
+    this.usuariosDePrueba.push({
+      contrasena,
+      deshabilitado: false,
+      usuario: { id: String(this.usuariosDePrueba.length + 1), ...cuerpo },
+    });
+
+    return of({}).pipe(delay(800));
   }
 
   // delay() no demora los errores, por eso se usa timer()

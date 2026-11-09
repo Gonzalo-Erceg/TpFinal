@@ -8,6 +8,8 @@
   --error-texto: #a3303f;
   --error-borde: #f1c2c8;
   --error-acento: #d1495b;
+  --exito-fondo: #e3f4e9;
+  --exito-borde: #b9e0c6;
 
   display: block;
   min-height: 100vh;
@@ -148,4 +150,14 @@ input {
     color: #6752b2;
     font-weight: 700;
   }
+}
+
+.aviso-exito {
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  background: var(--exito-fondo);
+  border: 1px solid var(--exito-borde);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--exito);
 }

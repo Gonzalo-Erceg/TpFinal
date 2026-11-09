@@ -8,3 +8,11 @@ export interface UsuarioPublico {
   email: string;
   rol: RolUsuario;
 }
+
+export interface DatosRegistro {
+  nombre: string;
+  apellido: string;
+  email: string;
+  contrasena: string;
+  rol: RolUsuario;
+}

@@ -3,6 +3,12 @@
     <h1 class="titulo">Iniciar sesión</h1>
     <p class="subtitulo">Ingresá con tu email y contraseña para ver tus grupos y exámenes.</p>
 
+    @if (registroExitoso) {
+      <p class="aviso-exito" role="status">
+        <span aria-hidden="true">✓</span> Tu cuenta se creó correctamente. Ya podés iniciar sesión.
+      </p>
+    }
+
     <form [formGroup]="formulario" (ngSubmit)="enviar()" [attr.aria-busy]="cargando()">
       <label for="email">Email</label>
       <input
