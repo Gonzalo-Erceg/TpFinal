@@ -72,30 +72,89 @@ class GroupsRepository {
         return result.recordset;
     }
 
-    async findByStudent(studentId) {
+    async findByStudent(studentId, groupId = null) {
+        const db = await pool;
+
+        const request = db.request().input('studentId', sql.UniqueIdentifier, studentId);
+        let groupFilter = '';
+
+        if (groupId) {
+            request.input('groupId', sql.UniqueIdentifier, groupId);
+            groupFilter = 'AND g.Id = @groupId';
+        }
+
+        const result = await request.query(`
+            SELECT
+                g.Id,
+                g.Name,
+                c.Name AS CourseName,
+                t.FirstName AS TeacherFirstName,
+                t.LastName AS TeacherLastName,
+                gm.Status
+            FROM GroupMembers gm
+            INNER JOIN ClassGroups g ON g.Id = gm.GroupId
+            INNER JOIN Users t ON t.Id = g.TeacherId
+            LEFT JOIN Courses c ON c.Id = g.CourseId
+            WHERE gm.UserId = @studentId
+              AND g.IsActive = 1
+              AND gm.Status <> 'REMOVED'
+              ${groupFilter}
+            ORDER BY g.Name
+        `);
+
+        return result.recordset;
+    }
+
+    async findActiveByAccessCode(accessCode) {
         const db = await pool;
 
         const result = await db.request()
-            .input('studentId', sql.UniqueIdentifier, studentId)
+            .input('accessCode', sql.NVarChar(50), accessCode)
+            .query('SELECT Id FROM ClassGroups WHERE AccessCode = @accessCode AND IsActive = 1');
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findMembership(groupId, userId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('groupId', sql.UniqueIdentifier, groupId)
+            .input('userId', sql.UniqueIdentifier, userId)
+            .query('SELECT Status FROM GroupMembers WHERE GroupId = @groupId AND UserId = @userId');
+
+        return result.recordset[0] ?? null;
+    }
+
+    async createMembership(groupId, userId) {
+        const db = await pool;
+
+        await db.request()
+            .input('groupId', sql.UniqueIdentifier, groupId)
+            .input('userId', sql.UniqueIdentifier, userId)
+            .query('INSERT INTO GroupMembers (GroupId, UserId) VALUES (@groupId, @userId)');
+    }
+
+    // Devuelve la cantidad de filas modificadas; 0 si el estado cambió mientras tanto
+    async reopenMembership(groupId, userId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('groupId', sql.UniqueIdentifier, groupId)
+            .input('userId', sql.UniqueIdentifier, userId)
             .query(`
-                SELECT
-                    g.Id,
-                    g.Name,
-                    c.Name AS CourseName,
-                    t.FirstName AS TeacherFirstName,
-                    t.LastName AS TeacherLastName,
-                    gm.Status
-                FROM GroupMembers gm
-                INNER JOIN ClassGroups g ON g.Id = gm.GroupId
-                INNER JOIN Users t ON t.Id = g.TeacherId
-                LEFT JOIN Courses c ON c.Id = g.CourseId
-                WHERE gm.UserId = @studentId
-                  AND g.IsActive = 1
-                  AND gm.Status <> 'REMOVED'
-                ORDER BY g.Name
+                UPDATE GroupMembers
+                SET Status = 'PENDING',
+                    RequestedAt = SYSUTCDATETIME(),
+                    ReviewedAt = NULL,
+                    ReviewedBy = NULL,
+                    JoinedAt = NULL
+                WHERE GroupId = @groupId
+                  AND UserId = @userId
+                  AND Status IN ('REJECTED', 'REMOVED')
             `);
 
-        return result.recordset;
+        return result.rowsAffected[0];
     }
 }
 

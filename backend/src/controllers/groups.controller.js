@@ -33,6 +33,15 @@ class GroupsController {
             sendError(res, error);
         }
     }
+
+    async join(req, res) {
+        try {
+            const group = await groupsService.join(req.body ?? {}, req.user);
+            res.status(201).json(group);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
 }
 
 module.exports = GroupsController;

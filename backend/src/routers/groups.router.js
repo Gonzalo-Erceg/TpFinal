@@ -11,4 +11,6 @@ router.get('/', (req, res) => controller.list(req, res));
 
 router.post('/', authorize('TEACHER'), (req, res) => controller.create(req, res));
 
+router.post('/join', authorize('STUDENT'), (req, res) => controller.join(req, res));
+
 module.exports = router;
