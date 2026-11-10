@@ -1,0 +1,128 @@
+<main class="pagina">
+  @if (cargando()) {
+    <p class="aviso">Cargando el examen...</p>
+  } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    <button type="button" class="boton" (click)="cargarExamen()">Reintentar</button>
+  } @else if (examen(); as examenCargado) {
+    <header class="encabezado">
+      <div>
+        <p class="etiqueta">{{ examenCargado.materia }}</p>
+        <h1 class="titulo">{{ examenCargado.titulo }}</h1>
+      </div>
+
+      @if (tiempoTerminado()) {
+        <p class="temporizador terminado" role="alert">
+          <span aria-hidden="true">⏱</span>
+          <strong>Tiempo terminado</strong>
+        </p>
+      } @else {
+        <p class="temporizador" role="timer" aria-label="Tiempo restante del examen">
+          <span aria-hidden="true">⏱</span>
+          <span class="temporizador-etiqueta">Tiempo restante</span>
+          <strong class="temporizador-valor">{{ tiempoRestante() }}</strong>
+        </p>
+      }
+
+      <p class="guardado" role="status" [class.guardando]="estadoGuardado() === 'guardando'" [class.listo]="estadoGuardado() === 'guardado'">
+        @switch (estadoGuardado()) {
+          @case ('guardando') {
+            <span aria-hidden="true">⟳</span> Guardando...
+          }
+          @case ('guardado') {
+            <span aria-hidden="true">✓</span> Guardado
+          }
+        }
+      </p>
+
+      <div class="progreso">
+        <p class="progreso-texto">
+          <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> respondidas
+        </p>
+        <div
+          class="barra"
+          role="progressbar"
+          aria-label="Progreso del examen"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="porcentaje()"
+        >
+          <div class="barra-relleno" [style.width.%]="porcentaje()"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="contenido">
+      <nav class="navegador" aria-label="Preguntas del examen">
+        <h2 class="navegador-titulo">Preguntas <span>({{ totalPreguntas() }})</span></h2>
+
+        <ol class="lista">
+          @for (item of resumenPreguntas(); track item.id; let i = $index) {
+            <li>
+              <button
+                type="button"
+                class="item"
+                [class.actual]="i === indiceActual()"
+                [class.respondida]="item.respondida"
+                [attr.aria-current]="i === indiceActual() ? 'step' : null"
+                [attr.aria-label]="'Pregunta ' + (i + 1) + (item.respondida ? ', respondida' : ', sin responder')"
+                (click)="irA(i)"
+              >
+                <span class="numero">{{ i + 1 }}</span>
+                <span class="item-texto">
+                  <span class="item-enunciado">{{ item.enunciado }}</span>
+                  <span class="item-estado">{{ item.respondida ? '✓ Respondida' : 'Sin responder' }}</span>
+                </span>
+              </button>
+            </li>
+          }
+        </ol>
+      </nav>
+
+      @if (preguntaActual(); as pregunta) {
+        <section class="pregunta">
+          <div class="pregunta-cabecera">
+            <span class="pregunta-numero">Pregunta {{ indiceActual() + 1 }} de {{ totalPreguntas() }}</span>
+            <span class="pregunta-meta">
+              {{ etiquetasTipo[pregunta.tipo] }} · {{ pregunta.puntaje }}
+              {{ pregunta.puntaje === 1 ? 'punto' : 'puntos' }}
+            </span>
+          </div>
+
+          <h2 class="enunciado">{{ pregunta.enunciado }}</h2>
+
+          @switch (pregunta.tipo) {
+            @case ('CHOICE') {
+              <app-respuesta-choice
+                [pregunta]="pregunta"
+                [respuesta]="respuestaActual()"
+                (respuestaCambiada)="guardarRespuesta($event)"
+              />
+            }
+            @case ('TRUE_FALSE') {
+              <app-respuesta-true-false
+                [pregunta]="pregunta"
+                [respuesta]="respuestaActual()"
+                (respuestaCambiada)="guardarRespuesta($event)"
+              />
+            }
+            @case ('SHORT_TEXT') {
+              <app-respuesta-short-text
+                [pregunta]="pregunta"
+                [respuesta]="respuestaActual()"
+                (respuestaCambiada)="guardarRespuesta($event)"
+              />
+            }
+          }
+
+          <div class="acciones">
+            <button type="button" class="boton secundario" (click)="anterior()" [disabled]="esPrimera()">
+              ← Anterior
+            </button>
+            <button type="button" class="boton" (click)="siguiente()" [disabled]="esUltima()">Siguiente →</button>
+          </div>
+        </section>
+      }
+    </div>
+  }
+</main>

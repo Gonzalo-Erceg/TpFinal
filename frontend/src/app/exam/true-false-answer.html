@@ -1,0 +1,16 @@
+<fieldset class="opciones">
+  <legend class="solo-lectores">{{ pregunta().enunciado }}</legend>
+
+  @for (opcion of opciones; track opcion.texto) {
+    <label class="opcion" [class.elegida]="respuesta() === opcion.valor">
+      <input
+        type="radio"
+        [name]="'pregunta-' + pregunta().id"
+        [checked]="respuesta() === opcion.valor"
+        (change)="respuestaCambiada.emit(opcion.valor)"
+      />
+      <span class="letra" aria-hidden="true">{{ opcion.letra }}</span>
+      <span class="texto">{{ opcion.texto }}</span>
+    </label>
+  }
+</fieldset>
