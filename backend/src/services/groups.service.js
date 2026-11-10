@@ -8,6 +8,7 @@ const MAX_ATTEMPTS = 5;
 const DUPLICATE_KEY_ERRORS = [2601, 2627];
 const ACCESS_CODE_INDEX = 'UX_ClassGroups_AccessCode';
 const GUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REOPENABLE_STATUSES = ['REJECTED', 'REMOVED'];
 
 function toTeacherGroup(row) {
     return {
@@ -95,6 +96,51 @@ class GroupsService {
         }
 
         throw new AuthError('No tenés permisos para acceder a este recurso', 403);
+    }
+
+    async join({ code }, student) {
+        if (typeof code !== 'string' || !code.trim() || code.trim().length > 50) {
+            throw new AuthError('El código del grupo es obligatorio');
+        }
+
+        code = code.trim();
+
+        const group = await groupsRepository.findActiveByAccessCode(code);
+
+        if (!group) {
+            throw new AuthError('El código no existe o el grupo no está activo', 404);
+        }
+
+        const membership = await groupsRepository.findMembership(group.Id, student.id);
+
+        if (!membership) {
+            try {
+                await groupsRepository.createMembership(group.Id, student.id);
+            } catch (error) {
+                // Dos pedidos a la vez: la clave primaria evita la membresía duplicada
+                if (DUPLICATE_KEY_ERRORS.includes(error.number)) {
+                    throw new AuthError('Ya existe una solicitud para este grupo', 409);
+                }
+
+                throw error;
+            }
+        } else if (REOPENABLE_STATUSES.includes(membership.Status)) {
+            const updatedRows = await groupsRepository.reopenMembership(group.Id, student.id);
+
+            if (updatedRows === 0) {
+                throw new AuthError('Ya existe una solicitud para este grupo', 409);
+            }
+        } else {
+            throw new AuthError(
+                membership.Status === 'ACTIVE'
+                    ? 'Ya sos miembro de este grupo'
+                    : 'Ya enviaste una solicitud para este grupo',
+                409
+            );
+        }
+
+        const [joinedGroup] = await groupsRepository.findByStudent(student.id, group.Id);
+        return toStudentGroup(joinedGroup);
     }
 }
 
