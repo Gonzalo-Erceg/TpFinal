@@ -9,6 +9,11 @@ const DUPLICATE_KEY_ERRORS = [2601, 2627];
 const ACCESS_CODE_INDEX = 'UX_ClassGroups_AccessCode';
 const GUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REOPENABLE_STATUSES = ['REJECTED', 'REMOVED'];
+const MEMBER_STATUSES = ['ACTIVE', 'REJECTED', 'REMOVED'];
+
+function isGuid(value) {
+    return typeof value === 'string' && GUID_REGEX.test(value);
+}
 
 function toTeacherGroup(row) {
     return {
@@ -30,6 +35,32 @@ function toStudentGroup(row) {
     };
 }
 
+function toMember(row) {
+    return {
+        userId: row.UserId,
+        firstName: row.FirstName,
+        lastName: row.LastName,
+        email: row.Email,
+        status: row.Status,
+        requestedAt: row.RequestedAt,
+        reviewedAt: row.ReviewedAt,
+        joinedAt: row.JoinedAt
+    };
+}
+
+// Un grupo ajeno responde igual que uno inexistente
+async function assertOwnGroup(groupId, teacherId) {
+    if (!isGuid(groupId)) {
+        throw new AuthError('El identificador del grupo no es válido');
+    }
+
+    const group = await groupsRepository.findOwnedGroup(groupId, teacherId);
+
+    if (!group) {
+        throw new AuthError('El grupo no existe', 404);
+    }
+}
+
 class GroupsService {
 
     async create({ name, courseId }, teacher) {
@@ -41,7 +72,7 @@ class GroupsService {
         courseId = courseId || null;
 
         if (courseId) {
-            if (typeof courseId !== 'string' || !GUID_REGEX.test(courseId)) {
+            if (!isGuid(courseId)) {
                 throw new AuthError('La materia seleccionada no es válida');
             }
 
@@ -141,6 +172,49 @@ class GroupsService {
 
         const [joinedGroup] = await groupsRepository.findByStudent(student.id, group.Id);
         return toStudentGroup(joinedGroup);
+    }
+
+    async listMembers(groupId, teacher) {
+        await assertOwnGroup(groupId, teacher.id);
+
+        const members = await groupsRepository.findMembers(groupId);
+        return members.map(toMember);
+    }
+
+    async updateMemberStatus(groupId, userId, { status }, teacher) {
+        if (!isGuid(userId)) {
+            throw new AuthError('El identificador del alumno no es válido');
+        }
+
+        if (!MEMBER_STATUSES.includes(status)) {
+            throw new AuthError('El estado debe ser ACTIVE, REJECTED o REMOVED');
+        }
+
+        await assertOwnGroup(groupId, teacher.id);
+
+        const membership = await groupsRepository.findMembership(groupId, userId);
+
+        if (!membership) {
+            throw new AuthError('El alumno no pertenece a este grupo', 404);
+        }
+
+        if (membership.Status === status) {
+            throw new AuthError('El alumno ya tiene ese estado', 409);
+        }
+
+        const updatedRows = await groupsRepository.updateMemberStatus({
+            groupId,
+            userId,
+            status,
+            reviewerId: teacher.id
+        });
+
+        if (updatedRows === 0) {
+            throw new AuthError('El estado del alumno cambió, volvé a intentar', 409);
+        }
+
+        const [member] = await groupsRepository.findMembers(groupId, userId);
+        return toMember(member);
     }
 }
 

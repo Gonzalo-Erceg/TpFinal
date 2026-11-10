@@ -156,6 +156,81 @@ class GroupsRepository {
 
         return result.rowsAffected[0];
     }
+        async findOwnedGroup(groupId, teacherId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('groupId', sql.UniqueIdentifier, groupId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                SELECT Id
+                FROM ClassGroups
+                WHERE Id = @groupId AND TeacherId = @teacherId AND IsActive = 1
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findMembers(groupId, userId = null) {
+        const db = await pool;
+
+        const request = db.request().input('groupId', sql.UniqueIdentifier, groupId);
+        let userFilter = '';
+
+        if (userId) {
+            request.input('userId', sql.UniqueIdentifier, userId);
+            userFilter = 'AND gm.UserId = @userId';
+        }
+
+        const result = await request.query(`
+            SELECT
+                gm.UserId,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                gm.Status,
+                gm.RequestedAt,
+                gm.ReviewedAt,
+                gm.JoinedAt
+            FROM GroupMembers gm
+            INNER JOIN Users u ON u.Id = gm.UserId
+            WHERE gm.GroupId = @groupId
+              ${userFilter}
+            ORDER BY
+                CASE gm.Status
+                    WHEN 'PENDING' THEN 0
+                    WHEN 'ACTIVE' THEN 1
+                    WHEN 'REJECTED' THEN 2
+                    ELSE 3
+                END,
+                gm.RequestedAt DESC
+        `);
+
+        return result.recordset;
+    }
+
+    // Devuelve la cantidad de filas modificadas; 0 si el estado ya era el pedido
+    async updateMemberStatus({ groupId, userId, status, reviewerId }) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('groupId', sql.UniqueIdentifier, groupId)
+            .input('userId', sql.UniqueIdentifier, userId)
+            .input('status', sql.NVarChar(20), status)
+            .input('reviewerId', sql.UniqueIdentifier, reviewerId)
+            .query(`
+                UPDATE GroupMembers
+                SET Status = @status,
+                    ReviewedAt = SYSUTCDATETIME(),
+                    ReviewedBy = @reviewerId,
+                    JoinedAt = CASE WHEN @status = 'ACTIVE' THEN SYSUTCDATETIME() ELSE JoinedAt END
+                WHERE GroupId = @groupId
+                  AND UserId = @userId
+                  AND Status <> @status
+            `);
+
+        return result.rowsAffected[0];
+    }
 }
 
 module.exports = GroupsRepository;
