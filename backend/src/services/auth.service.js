@@ -91,7 +91,8 @@ class AuthService {
                 id: user.Id,
                 firstName: user.FirstName,
                 lastName: user.LastName,
-                email: user.Email
+                email: user.Email,
+                role: user.Role
             },
             token
         };
