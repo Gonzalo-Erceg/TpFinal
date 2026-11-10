@@ -1,0 +1,39 @@
+<div class="fondo" (click)="cerrar.emit()">
+  <div
+    class="dialogo"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="titulo-dialogo"
+    (click)="$event.stopPropagation()"
+    (keydown.escape)="cerrar.emit()"
+  >
+    <h3 id="titulo-dialogo">Unirme con código</h3>
+    <p>Ingresá el código que te dio tu profesor.</p>
+
+    <form (submit)="enviar($event)">
+      <label for="codigo">Código del grupo</label>
+      <input id="codigo" type="text" [formControl]="codigo" autocomplete="off" placeholder="Ej: ABC123" />
+
+      @if (codigo.touched && codigo.invalid) {
+        <p class="error" role="alert">
+          @if (codigo.hasError('required')) {
+            Ingresá el código del grupo.
+          } @else if (codigo.hasError('pattern')) {
+            El código debe tener 6 letras o números, sin espacios.
+          }
+        </p>
+      }
+
+      @if (errorServidor()) {
+        <p class="error" role="alert">{{ errorServidor() }}</p>
+      }
+
+      <div class="acciones">
+        <button type="button" (click)="cerrar.emit()">Cancelar</button>
+        <button type="submit" [disabled]="enviando()">
+          {{ enviando() ? 'Enviando...' : 'Enviar solicitud' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
