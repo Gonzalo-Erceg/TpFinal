@@ -17,9 +17,14 @@ export interface Examen {
   id: number;
   titulo: string;
   materia: string;
-  // La calcula el backend cuando el alumno empieza el intento. Viene en ISO y UTC (ej. 2026-11-09T18:30:00.000Z)
-  fechaLimite: string;
+  // La elige el docente; se muestra en las instrucciones antes de empezar
+  duracionMinutos: number;
   preguntas: Pregunta[];
+}
+
+export interface IntentoExamen {
+  // La calcula el backend cuando el alumno empieza. Viene en ISO y UTC (ej. 2026-11-09T18:30:00.000Z)
+  fechaLimite: string;
 }
 
 // CHOICE guarda el id de la opción elegida, TRUE_FALSE un booleano y SHORT_TEXT el texto escrito

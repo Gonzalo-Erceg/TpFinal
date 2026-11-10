@@ -2,7 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { Pregunta, Respuesta } from './exam.model';
 
 // Límite supuesto para respuestas cortas, confirmar con el equipo
-const LIMITE_CARACTERES = 300;
+export const LIMITE_CARACTERES = 300;
 
 @Component({
   selector: 'app-respuesta-short-text',

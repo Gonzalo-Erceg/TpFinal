@@ -4,6 +4,132 @@
   } @else if (mensajeError()) {
     <p class="error">{{ mensajeError() }}</p>
     <button type="button" class="boton" (click)="cargarExamen()">Reintentar</button>
+  } @else if (estadoExamen() === 'entregado') {
+    <section class="entregado" role="status">
+      <span class="entregado-icono" aria-hidden="true">✓</span>
+      <h1 class="entregado-titulo">Examen entregado</h1>
+      <p class="entregado-examen">{{ examen()?.materia }} · {{ examen()?.titulo }}</p>
+      @if (salioDePantallaCompleta()) {
+        <p class="entregado-motivo">
+          <span aria-hidden="true">⚠</span> Se entregó automáticamente porque no volviste a la pantalla completa.
+        </p>
+      }
+      <p class="entregado-detalle">
+        Respondiste <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> preguntas.
+        Vas a poder ver el resultado cuando tu docente lo habilite.
+      </p>
+    </section>
+  } @else if (salioDePantallaCompleta()) {
+    <section class="entregado">
+      <span class="entregado-icono alerta" aria-hidden="true">⚠</span>
+      <h1 class="entregado-titulo">No volviste a la pantalla completa</h1>
+      @if (estadoExamen() === 'entregando') {
+        <p class="entregado-detalle" role="status">Estamos entregando tu examen con las respuestas que tenías...</p>
+      } @else {
+        <p class="error" role="alert">{{ errorEntrega() }}</p>
+        <button type="button" class="boton" (click)="reintentarEntrega()">Reintentar la entrega</button>
+      }
+    </section>
+  } @else if (estadoExamen() === 'fuera-de-pantalla') {
+    <section class="entregado">
+      <span class="entregado-icono alerta" aria-hidden="true">⚠</span>
+      <h1 class="entregado-titulo">Saliste de la pantalla completa</h1>
+      <p class="entregado-detalle" role="alert">
+        Si no volvés, tu examen se va a entregar automáticamente con las respuestas que tenés hasta ahora.
+      </p>
+      <p class="cuenta-regresiva">
+        <strong>{{ segundosParaVolver() }}</strong>
+        <span>{{ segundosParaVolver() === 1 ? 'segundo' : 'segundos' }} para volver</span>
+      </p>
+      @if (errorVolver()) {
+        <p class="error" role="alert">{{ errorVolver() }}</p>
+      }
+      <button type="button" class="boton" (click)="volverAPantallaCompleta()">Volver a pantalla completa</button>
+    </section>
+  } @else if (enInstrucciones() && examen(); as examenCargado) {
+    <section class="instrucciones" aria-labelledby="titulo-instrucciones">
+      <p class="etiqueta">{{ examenCargado.materia }}</p>
+      <h1 class="titulo" id="titulo-instrucciones">{{ examenCargado.titulo }}</h1>
+      <p class="instrucciones-subtitulo">Instrucciones del examen</p>
+
+      <ul class="datos">
+        <li>
+          <strong>{{ examenCargado.duracionMinutos }} min</strong>
+          <span>Tiempo límite</span>
+        </li>
+        <li>
+          <strong>{{ totalPreguntas() }}</strong>
+          <span>{{ totalPreguntas() === 1 ? 'Pregunta' : 'Preguntas' }}</span>
+        </li>
+        <li>
+          <strong>{{ puntajeTotal() }}</strong>
+          <span>{{ puntajeTotal() === 1 ? 'Punto' : 'Puntos' }} en total</span>
+        </li>
+      </ul>
+
+      <h2 class="instrucciones-seccion">Antes de empezar</h2>
+      <ul class="reglas">
+        <li>
+          <span aria-hidden="true">⏱</span>
+          Tenés {{ examenCargado.duracionMinutos }} minutos desde que tocás "Comenzar examen". El tiempo sigue
+          corriendo aunque cambies de pregunta.
+        </li>
+        <li>
+          <span aria-hidden="true">✓</span>
+          Tus respuestas se guardan solas. Cada vez que respondas vas a ver el aviso "Guardado".
+        </li>
+        <li>
+          <span aria-hidden="true">↔</span>
+          Podés moverte entre las preguntas y cambiar tus respuestas hasta que entregues.
+        </li>
+        <li>
+          <span aria-hidden="true">✉</span>
+          Cuando termines, tocá "Entregar examen". Antes de confirmar vas a ver un resumen de tus respuestas.
+        </li>
+      </ul>
+
+      <h2 class="instrucciones-seccion">Cómo responder</h2>
+      <ul class="reglas">
+        @for (tipo of tiposDelExamen(); track tipo) {
+          <li>
+            <strong>{{ etiquetasTipo[tipo] }}:</strong>
+            @switch (tipo) {
+              @case ('CHOICE') {
+                elegí una sola opción.
+              }
+              @case ('TRUE_FALSE') {
+                indicá si la afirmación es verdadera o falsa.
+              }
+              @case ('SHORT_TEXT') {
+                escribí tu respuesta, hasta {{ limiteTextoCorto }} caracteres.
+              }
+            }
+          </li>
+        }
+      </ul>
+
+      <div class="aviso-pantalla">
+        <h2 class="instrucciones-seccion"><span aria-hidden="true">⚠</span> Pantalla completa obligatoria</h2>
+        <p>
+          El examen se rinde en pantalla completa. Si salís (por ejemplo, con la tecla Esc), tenés
+          {{ segundosParaVolverTotal }} segundos para volver. Si no volvés, el examen se termina y se entrega
+          automáticamente con lo que hayas respondido. El tiempo del examen sigue corriendo mientras tanto.
+        </p>
+      </div>
+
+      @if (errorInicio()) {
+        <p class="error" role="alert">{{ errorInicio() }}</p>
+      }
+
+      <button
+        type="button"
+        class="boton comenzar"
+        (click)="comenzarExamen()"
+        [disabled]="estadoExamen() === 'comenzando'"
+      >
+        {{ estadoExamen() === 'comenzando' ? 'Iniciando...' : 'Comenzar examen' }}
+      </button>
+    </section>
   } @else if (examen(); as examenCargado) {
     <header class="encabezado">
       <div>
@@ -77,6 +203,8 @@
             </li>
           }
         </ol>
+
+        <button type="button" class="boton entregar" (click)="abrirConfirmacion()">Entregar examen</button>
       </nav>
 
       @if (preguntaActual(); as pregunta) {
@@ -119,10 +247,78 @@
             <button type="button" class="boton secundario" (click)="anterior()" [disabled]="esPrimera()">
               ← Anterior
             </button>
-            <button type="button" class="boton" (click)="siguiente()" [disabled]="esUltima()">Siguiente →</button>
+            @if (esUltima()) {
+              <button type="button" class="boton" (click)="abrirConfirmacion()">Entregar examen</button>
+            } @else {
+              <button type="button" class="boton" (click)="siguiente()">Siguiente →</button>
+            }
           </div>
         </section>
       }
     </div>
+
+    <dialog
+      #dialogoEntrega
+      class="dialogo"
+      aria-labelledby="titulo-entrega"
+      aria-describedby="aviso-entrega"
+      (cancel)="alCancelarDialogo($event)"
+    >
+      <h2 id="titulo-entrega" class="dialogo-titulo">¿Entregar el examen?</h2>
+
+      <div id="aviso-entrega">
+        @if (numerosSinResponder().length > 0) {
+          <p class="advertencia" role="alert">
+            <span aria-hidden="true">⚠</span>
+            Tenés {{ numerosSinResponder().length }}
+            {{ numerosSinResponder().length === 1 ? 'pregunta' : 'preguntas' }} sin responder:
+            {{ numerosSinResponder().join(', ') }}.
+          </p>
+        } @else {
+          <p class="completo"><span aria-hidden="true">✓</span> Respondiste todas las preguntas.</p>
+        }
+        <p class="dialogo-nota">Una vez entregado no vas a poder cambiar tus respuestas.</p>
+      </div>
+
+      <h3 class="resumen-titulo">Resumen de respuestas</h3>
+      <ol class="resumen">
+        @for (item of resumenEntrega(); track item.id) {
+          <li class="resumen-item" [class.sin-responder]="item.respuesta === null">
+            <span class="numero">{{ item.numero }}</span>
+            <div class="resumen-texto">
+              <p class="resumen-enunciado">{{ item.enunciado }}</p>
+              @if (item.respuesta !== null) {
+                <p class="resumen-respuesta">{{ item.respuesta }}</p>
+              } @else {
+                <p class="resumen-falta"><span aria-hidden="true">⚠</span> Sin responder</p>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+
+      @if (errorEntrega()) {
+        <p class="error" role="alert">{{ errorEntrega() }}</p>
+      }
+
+      <div class="dialogo-acciones">
+        <button
+          type="button"
+          class="boton secundario"
+          (click)="cerrarConfirmacion()"
+          [disabled]="estadoExamen() === 'entregando'"
+        >
+          Volver al examen
+        </button>
+        <button
+          type="button"
+          class="boton"
+          (click)="confirmarEntrega()"
+          [disabled]="estadoExamen() !== 'respondiendo'"
+        >
+          {{ estadoExamen() === 'entregando' ? 'Entregando...' : 'Sí, entregar' }}
+        </button>
+      </div>
+    </dialog>
   }
 </main>
