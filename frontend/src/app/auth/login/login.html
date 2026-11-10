@@ -1,0 +1,59 @@
+<main class="pagina">
+  <section class="tarjeta">
+    <h1 class="titulo">Iniciar sesión</h1>
+    <p class="subtitulo">Ingresá con tu email y contraseña para ver tus grupos y exámenes.</p>
+
+    @if (registroExitoso) {
+      <p class="aviso-exito" role="status">
+        <span aria-hidden="true">✓</span> Tu cuenta se creó correctamente. Ya podés iniciar sesión.
+      </p>
+    }
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" [attr.aria-busy]="cargando()">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        placeholder="nombre@ejemplo.com"
+        [readonly]="cargando()"
+      />
+      @if (formulario.controls.email.touched && formulario.controls.email.invalid) {
+        <p class="error-campo" role="alert">
+          @if (formulario.controls.email.hasError('required')) {
+            Ingresá tu email.
+          } @else {
+            El email no tiene un formato válido.
+          }
+        </p>
+      }
+
+      <label for="contrasena">Contraseña</label>
+      <input
+        id="contrasena"
+        type="password"
+        formControlName="contrasena"
+        autocomplete="current-password"
+        [readonly]="cargando()"
+      />
+      @if (formulario.controls.contrasena.touched && formulario.controls.contrasena.invalid) {
+        <p class="error-campo" role="alert">Ingresá tu contraseña.</p>
+      }
+
+      @if (mensajeError()) {
+        <p class="error" role="alert">{{ mensajeError() }}</p>
+      }
+
+      <button type="submit" class="boton" [disabled]="cargando()">
+        @if (cargando()) {
+          <span class="spinner" aria-hidden="true"></span> Ingresando...
+        } @else {
+          Iniciar sesión
+        }
+      </button>
+    </form>
+
+    <p class="pie">¿No tenés cuenta? <a routerLink="/registro">Registrate</a></p>
+  </section>
+</main>

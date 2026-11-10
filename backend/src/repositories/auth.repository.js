@@ -2,25 +2,28 @@ const sql = require('mssql');
 const { pool } = require('../config/database');
 
 class AuthRepository {
-    async findByEmail(email) {
-        const db = await pool;
+   async findByEmail(email) {
+    const db = await pool;
 
-        const result = await db.request()
-            .input('email', sql.NVarChar(255), email)
-            .query(`
-                SELECT
-                    Id,
-                    FirstName,
-                    LastName,
-                    Email,
-                    PasswordHash,
-                    IsActive
-                FROM Users
-                WHERE Email = @email
-            `);
+    const result = await db.request()
+        .input('email', sql.NVarChar(255), email)
+        .query(`
+            SELECT
+                u.Id,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                u.PasswordHash,
+                u.IsActive,
+                r.Name AS Role
+            FROM Users u
+            LEFT JOIN UserRoles ur ON u.Id = ur.UserId
+            LEFT JOIN Roles r ON ur.RoleId = r.Id
+            WHERE u.Email = @email
+        `);
 
-        return result.recordset[0] ?? null;
-    }
+    return result.recordset[0] ?? null;
+}
 
     async create({ firstName, lastName, email, passwordHash, role }) {
         const db = await pool;
