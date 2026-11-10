@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { Examen, Respuesta } from './exam.model';
+import { Examen, IntentoExamen, Respuesta } from './exam.model';
 
 const DURACION_DE_PRUEBA = 30;
 
@@ -14,8 +14,7 @@ export class ExamenService {
     id: 1,
     titulo: 'Primer parcial',
     materia: 'Programación I',
-    // Simula lo que haría el backend: inicio del intento + duración elegida por el docente
-    fechaLimite: new Date(Date.now() + DURACION_DE_PRUEBA * 60 * 1000).toISOString(),
+    duracionMinutos: DURACION_DE_PRUEBA,
     preguntas: [
       {
         id: 1,
@@ -90,6 +89,21 @@ export class ExamenService {
     return new Promise((resolve) => {
       setTimeout(() => resolve(), 800);
     });
+  }
+
+  // El tiempo empieza a correr recién acá, no mientras el alumno lee las instrucciones
+  iniciarIntento(idExamen: number): Promise<IntentoExamen> {
+    if (USAR_DATOS_DE_PRUEBA) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const duracion = this.examenDePrueba.duracionMinutos * 60 * 1000;
+          resolve({ fechaLimite: new Date(Date.now() + duracion).toISOString() });
+        }, 400);
+      });
+    }
+
+    // Supuesto: POST /exams/:id/attempts devuelve { deadlineAt }
+    return Promise.reject(new Error(`Falta conectar POST /exams/${idExamen}/attempts`));
   }
 
   entregarExamen(idExamen: number, respuestas: Record<number, Respuesta>): Promise<void> {
