@@ -42,6 +42,29 @@ class GroupsController {
             sendError(res, error);
         }
     }
+
+    async listMembers(req, res) {
+        try {
+            const members = await groupsService.listMembers(req.params.id, req.user);
+            res.status(200).json(members);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async updateMember(req, res) {
+        try {
+            const member = await groupsService.updateMemberStatus(
+                req.params.id,
+                req.params.userId,
+                req.body ?? {},
+                req.user
+            );
+            res.status(200).json(member);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
 }
 
 module.exports = GroupsController;

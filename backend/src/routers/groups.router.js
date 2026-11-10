@@ -13,4 +13,8 @@ router.post('/', authorize('TEACHER'), (req, res) => controller.create(req, res)
 
 router.post('/join', authorize('STUDENT'), (req, res) => controller.join(req, res));
 
+router.get('/:id/members', authorize('TEACHER'), (req, res) => controller.listMembers(req, res));
+
+router.patch('/:id/members/:userId', authorize('TEACHER'), (req, res) => controller.updateMember(req, res));
+
 module.exports = router;
