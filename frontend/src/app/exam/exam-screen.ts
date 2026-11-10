@@ -1,4 +1,14 @@
-import { Component, computed, inject, OnDestroy, OnInit, PLATFORM_ID, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  PLATFORM_ID,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { ExamenService } from './exam.service';
 import { Examen, Pregunta, Respuesta, TipoPregunta } from './exam.model';
@@ -21,6 +31,10 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
   ahora = signal(Date.now());
   estadoGuardado = signal<'sin-cambios' | 'guardando' | 'guardado'>('sin-cambios');
+  estadoEntrega = signal<'respondiendo' | 'entregando' | 'entregado'>('respondiendo');
+  errorEntrega = signal<string | null>(null);
+
+  private dialogoEntrega = viewChild<ElementRef<HTMLDialogElement>>('dialogoEntrega');
 
   examen = signal<Examen | null>(null);
   cargando = signal(true);
@@ -79,6 +93,21 @@ export class PantallaExamen implements OnInit, OnDestroy {
   });
 
   tiempoTerminado = computed(() => this.examen() !== null && this.segundosRestantes() === 0);
+
+  resumenEntrega = computed(() =>
+    (this.examen()?.preguntas ?? []).map((pregunta, indice) => ({
+      id: pregunta.id,
+      numero: indice + 1,
+      enunciado: pregunta.enunciado,
+      respuesta: this.tieneRespuesta(pregunta) ? this.textoRespuesta(pregunta) : null,
+    })),
+  );
+
+  numerosSinResponder = computed(() =>
+    this.resumenEntrega()
+      .filter((item) => item.respuesta === null)
+      .map((item) => item.numero),
+  );
 
   ngOnInit(): void {
     this.cargarExamen();
@@ -159,6 +188,57 @@ export class PantallaExamen implements OnInit, OnDestroy {
     if (numeroDeEsteGuardado === this.numeroGuardado) {
       this.estadoGuardado.set('guardado');
     }
+  }
+
+  // El botón Entregar nunca envía: solo abre la confirmación
+  abrirConfirmacion(): void {
+    this.errorEntrega.set(null);
+    this.dialogoEntrega()?.nativeElement.showModal();
+  }
+
+  cerrarConfirmacion(): void {
+    if (this.estadoEntrega() === 'entregando') {
+      return;
+    }
+    this.dialogoEntrega()?.nativeElement.close();
+  }
+
+  // Esc cierra el diálogo por defecto; mientras se entrega no lo dejamos cerrar
+  alCancelarDialogo(evento: Event): void {
+    if (this.estadoEntrega() === 'entregando') {
+      evento.preventDefault();
+    }
+  }
+
+  async confirmarEntrega(): Promise<void> {
+    const examen = this.examen();
+    // Si ya se está entregando (doble clic) o ya se entregó, no se vuelve a enviar
+    if (!examen || this.estadoEntrega() !== 'respondiendo') {
+      return;
+    }
+    this.estadoEntrega.set('entregando');
+    this.errorEntrega.set(null);
+
+    try {
+      await this.examenService.entregarExamen(examen.id, this.respuestas());
+      this.dialogoEntrega()?.nativeElement.close();
+      this.detenerTemporizador();
+      this.estadoEntrega.set('entregado');
+    } catch {
+      this.estadoEntrega.set('respondiendo');
+      this.errorEntrega.set('No se pudo entregar el examen. Tus respuestas siguen guardadas, intentá de nuevo.');
+    }
+  }
+
+  private textoRespuesta(pregunta: Pregunta): string {
+    const valor = this.respuestas()[pregunta.id];
+    if (pregunta.tipo === 'CHOICE') {
+      return pregunta.opciones?.find((opcion) => opcion.id === valor)?.texto ?? String(valor);
+    }
+    if (pregunta.tipo === 'TRUE_FALSE') {
+      return valor ? 'Verdadero' : 'Falso';
+    }
+    return String(valor).trim();
   }
 
   // Un texto con solo espacios no cuenta como respondido, pero false sí es una respuesta válida

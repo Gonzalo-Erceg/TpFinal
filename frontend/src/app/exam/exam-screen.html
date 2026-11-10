@@ -4,6 +4,16 @@
   } @else if (mensajeError()) {
     <p class="error">{{ mensajeError() }}</p>
     <button type="button" class="boton" (click)="cargarExamen()">Reintentar</button>
+  } @else if (estadoEntrega() === 'entregado') {
+    <section class="entregado" role="status">
+      <span class="entregado-icono" aria-hidden="true">✓</span>
+      <h1 class="entregado-titulo">Examen entregado</h1>
+      <p class="entregado-examen">{{ examen()?.materia }} · {{ examen()?.titulo }}</p>
+      <p class="entregado-detalle">
+        Respondiste <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> preguntas.
+        Vas a poder ver el resultado cuando tu docente lo habilite.
+      </p>
+    </section>
   } @else if (examen(); as examenCargado) {
     <header class="encabezado">
       <div>
@@ -77,6 +87,8 @@
             </li>
           }
         </ol>
+
+        <button type="button" class="boton entregar" (click)="abrirConfirmacion()">Entregar examen</button>
       </nav>
 
       @if (preguntaActual(); as pregunta) {
@@ -119,10 +131,78 @@
             <button type="button" class="boton secundario" (click)="anterior()" [disabled]="esPrimera()">
               ← Anterior
             </button>
-            <button type="button" class="boton" (click)="siguiente()" [disabled]="esUltima()">Siguiente →</button>
+            @if (esUltima()) {
+              <button type="button" class="boton" (click)="abrirConfirmacion()">Entregar examen</button>
+            } @else {
+              <button type="button" class="boton" (click)="siguiente()">Siguiente →</button>
+            }
           </div>
         </section>
       }
     </div>
+
+    <dialog
+      #dialogoEntrega
+      class="dialogo"
+      aria-labelledby="titulo-entrega"
+      aria-describedby="aviso-entrega"
+      (cancel)="alCancelarDialogo($event)"
+    >
+      <h2 id="titulo-entrega" class="dialogo-titulo">¿Entregar el examen?</h2>
+
+      <div id="aviso-entrega">
+        @if (numerosSinResponder().length > 0) {
+          <p class="advertencia" role="alert">
+            <span aria-hidden="true">⚠</span>
+            Tenés {{ numerosSinResponder().length }}
+            {{ numerosSinResponder().length === 1 ? 'pregunta' : 'preguntas' }} sin responder:
+            {{ numerosSinResponder().join(', ') }}.
+          </p>
+        } @else {
+          <p class="completo"><span aria-hidden="true">✓</span> Respondiste todas las preguntas.</p>
+        }
+        <p class="dialogo-nota">Una vez entregado no vas a poder cambiar tus respuestas.</p>
+      </div>
+
+      <h3 class="resumen-titulo">Resumen de respuestas</h3>
+      <ol class="resumen">
+        @for (item of resumenEntrega(); track item.id) {
+          <li class="resumen-item" [class.sin-responder]="item.respuesta === null">
+            <span class="numero">{{ item.numero }}</span>
+            <div class="resumen-texto">
+              <p class="resumen-enunciado">{{ item.enunciado }}</p>
+              @if (item.respuesta !== null) {
+                <p class="resumen-respuesta">{{ item.respuesta }}</p>
+              } @else {
+                <p class="resumen-falta"><span aria-hidden="true">⚠</span> Sin responder</p>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+
+      @if (errorEntrega()) {
+        <p class="error" role="alert">{{ errorEntrega() }}</p>
+      }
+
+      <div class="dialogo-acciones">
+        <button
+          type="button"
+          class="boton secundario"
+          (click)="cerrarConfirmacion()"
+          [disabled]="estadoEntrega() === 'entregando'"
+        >
+          Volver al examen
+        </button>
+        <button
+          type="button"
+          class="boton"
+          (click)="confirmarEntrega()"
+          [disabled]="estadoEntrega() !== 'respondiendo'"
+        >
+          {{ estadoEntrega() === 'entregando' ? 'Entregando...' : 'Sí, entregar' }}
+        </button>
+      </div>
+    </dialog>
   }
 </main>

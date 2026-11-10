@@ -5,6 +5,9 @@ import { Examen, Respuesta } from './exam.model';
 
 const DURACION_DE_PRUEBA = 30;
 
+// En true la entrega se simula. En false se envía a la API (todavía no está conectada)
+const USAR_DATOS_DE_PRUEBA = true;
+
 @Injectable({ providedIn: 'root' })
 export class ExamenService {
   private examenDePrueba: Examen = {
@@ -87,5 +90,22 @@ export class ExamenService {
     return new Promise((resolve) => {
       setTimeout(() => resolve(), 800);
     });
+  }
+
+  entregarExamen(idExamen: number, respuestas: Record<number, Respuesta>): Promise<void> {
+    if (USAR_DATOS_DE_PRUEBA) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(), 1200);
+      });
+    }
+
+    // Así lo esperaría el backend (supuesto): POST /exams/:id/submit con las respuestas en inglés
+    const cuerpo = {
+      answers: Object.entries(respuestas).map(([idPregunta, valor]) => ({
+        questionId: Number(idPregunta),
+        value: valor,
+      })),
+    };
+    return Promise.reject(new Error(`Falta conectar POST /exams/${idExamen}/submit con ${JSON.stringify(cuerpo)}`));
   }
 }
