@@ -1,5 +1,6 @@
 
 import { Routes } from '@angular/router';
+
 import { PantallaExamen } from './exam/exam-screen';
 import { ListaGrupos } from './groups/groups-list';
 import { InicioSesion } from './auth/login/login';
@@ -9,15 +10,50 @@ import { GruposProfesor } from './groups/teacher-groups';
 import { BancoPreguntas } from './questions/question-bank';
 import { FormularioPregunta } from './questions/question-form';
 
+import { authGuard } from './core/auth/auth.guard';
+import { roleGuard } from './core/auth/role.guard';
+import { guestGuard } from './core/auth/guest.guard';
+
 export const routes: Routes = [
-  { path: '', redirectTo: 'landing', pathMatch: 'full' },
-  { path: 'landing', component: Landing },
-  { path: 'login', component: InicioSesion },
-  { path: 'registro', component: Registro },
-  { path: 'grupos', component: ListaGrupos },
-  { path: 'examen', component: PantallaExamen },
-  { path: 'profesor', component: GruposProfesor },
-  { path: 'preguntas', component: BancoPreguntas },
-  { path: 'preguntas/nueva', component: FormularioPregunta },
-  { path: 'preguntas/:id/editar', component: FormularioPregunta },
+    { path: '', redirectTo: 'landing', pathMatch: 'full' },
+    { path: 'landing', component: Landing },
+    { path: 'login', component: InicioSesion, canActivate: [guestGuard] },
+    { path: 'registro', component: Registro, canActivate: [guestGuard] },
+
+    {
+        path: 'grupos',
+        component: ListaGrupos,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
+    },
+    {
+        path: 'examen',
+        component: PantallaExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
+    },
+    {
+        path: 'profesor',
+        component: GruposProfesor,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'preguntas',
+        component: BancoPreguntas,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'preguntas/nueva',
+        component: FormularioPregunta,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'preguntas/:id/editar',
+        component: FormularioPregunta,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
 ];
