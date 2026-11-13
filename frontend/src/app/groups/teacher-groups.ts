@@ -1,9 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { GruposService } from './groups.service';
 import { GrupoDelProfesor } from './group.model';
+import { DialogoCrearGrupo } from './create-group-dialog';
 
 @Component({
-  imports: [],
+  imports: [DialogoCrearGrupo],
   selector: 'app-grupos-profesor',
   styleUrl: './teacher-groups.scss',
   templateUrl: './teacher-groups.html',
@@ -15,6 +16,7 @@ export class GruposProfesor implements OnInit {
   grupos = signal<GrupoDelProfesor[]>([]);
   cargando = signal(true);
   mensajeError = signal<string | null>(null);
+  mostrarDialogo = signal(false);
 
   ngOnInit(): void {
     this.cargarGrupos();
@@ -34,5 +36,19 @@ export class GruposProfesor implements OnInit {
         this.cargando.set(false);
       },
     });
+  }
+
+  abrirDialogo(): void {
+    this.mostrarDialogo.set(true);
+  }
+
+  cerrarDialogo(): void {
+    this.mostrarDialogo.set(false);
+  }
+
+  // Se ejecuta cuando el diálogo avisa que se creó un grupo
+  alCrearGrupo(grupo: GrupoDelProfesor): void {
+    this.grupos.update((lista) => [...lista, grupo]);
+    this.mostrarDialogo.set(false);
   }
 }

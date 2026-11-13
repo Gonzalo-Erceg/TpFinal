@@ -1,0 +1,76 @@
+:host {
+  // Colores neutros
+  --bg: #f8f7f5;
+  --white: #fff;
+  --ink: #242332;
+  --muted: #8b8998;
+  --border: #e9e6ea;
+  --texto-suave: #6f6b7c;
+  --fondo-pagina: #f8f8f9;
+  --brillo: #efedf7;
+  --boton-fondo: #382e54;
+  --boton-texto: #fff;
+  --boton-hover: #544077;
+  --avatar-fondo: #e6e4f6;
+  --avatar-texto: #6654ae;
+
+  // Verde: activo
+  --ok-fondo: #e3f3e9;
+  --ok-texto: #1f6b47;
+  --ok-borde: #bfe0cd;
+  --ok-acento: #34856b;
+
+  // Amarillo: pendiente
+  --pendiente-fondo: #fff4d1;
+  --pendiente-texto: #8a6100;
+  --pendiente-borde: #f0dc9b;
+  --pendiente-acento: #e5ae2b;
+
+  // Rojo: rechazado
+  --error-fondo: #fbe4e7;
+  --error-texto: #a3303f;
+  --error-borde: #f1c2c8;
+  --error-acento: #d1495b;
+
+  display: block;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 52% 42% at 90% -16%, var(--brillo) 0%, transparent 72%),
+    var(--fondo-pagina);
+}
+
+// Modo nocturno: solo se redefinen las variables, el resto del archivo no cambia
+:host(.nocturno) {
+  color-scheme: dark;
+
+  --bg: #15151c;
+  --white: #24242e;
+  --ink: #edeaf4;
+  --muted: #aaa5b6;
+  --border: #37343f;
+  --texto-suave: #b3aec0;
+  --fondo-pagina: #15151c;
+  --brillo: #26223a;
+  --boton-fondo: #baa4ff;
+  --boton-texto: #1c1530;
+  --boton-hover: #cdbcff;
+  --avatar-fondo: #413458;
+  --avatar-texto: #d9c8ff;
+
+  --ok-fondo: #1d3a2d;
+  --ok-texto: #8fd9b0;
+  --ok-borde: #2d5a45;
+  --ok-acento: #4fb585;
+
+  --pendiente-fondo: #3d3217;
+  --pendiente-texto: #f1cf7a;
+  --pendiente-borde: #5e4d22;
+  --pendiente-acento: #e5ae2b;
+
+  --error-fondo: #411f27;
+  --error-texto: #f0a0ab;
+  --error-borde: #66303a;
+  --error-acento: #e0677a;
+}

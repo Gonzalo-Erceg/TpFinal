@@ -1,5 +1,6 @@
 <main class="pagina">
     <h1>Mis grupos</h1>
+    <button type="button" (click)="abrirDialogo()">+ Crear grupo</button>
     @if(cargando()){
     <p>Cargando grupos</p>
     }@else if(mensajeError()){
@@ -18,3 +19,7 @@
     }
     }
 </main>
+
+@if (mostrarDialogo()) {
+  <app-dialogo-crear-grupo (grupoCreado)="alCrearGrupo($event)" (cerrar)="cerrarDialogo()" />
+}
