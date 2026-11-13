@@ -1,0 +1,319 @@
+:host {
+	--primary: #242332;
+	--secundary: #5F5A6C;
+	--boton: #6752b2;
+}
+
+* {
+	box-sizing: border-box;
+	font-family: "Manrope", sans-serif;
+}
+
+.profiles {
+	width: 100%;
+	padding: 4rem 2rem;
+}
+
+.profiles-container {
+	margin: 0 auto;
+}
+
+.profiles-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+
+	gap: 2rem;
+	margin-bottom: 2rem;
+}
+
+.profiles-header h2 {
+	margin: 0;
+
+	max-width: 390px;
+
+	font-size: 48px;
+	font-weight: 800;
+	line-height: 1;
+
+	color: var(--primary);
+}
+
+.profiles-header p {
+	margin: 0;
+
+	max-width: 360px;
+
+	font-size: 14px;
+	line-height: 1.6;
+
+	color: var(--secundary);
+}
+
+.profiles-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 1rem;
+}
+
+.profile-card {
+	padding: 2rem;
+	border-radius: 28px;
+}
+
+.profile-label {
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.profile-card h3 {
+	margin: 8px 0;
+
+	font-size: 28px;
+	font-weight: 800;
+	line-height: 1.05;
+}
+
+.profile-card p {
+	margin: 0;
+
+	max-width: 430px;
+
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+/* STUDENT CARD */
+
+.student-card {
+	background: #2A2142;
+	color: #fff;
+}
+
+.student-card .profile-label {
+	color: #B9A7FF;
+}
+
+.student-card p {
+	color: #D3CBE8;
+}
+
+.student-list {
+	display: flex;
+	flex-direction: column;
+
+	gap: 10px;
+	margin-top: 2rem;
+}
+
+.student-row {
+	display: flex;
+	align-items: center;
+
+	gap: 12px;
+
+	padding: 12px 14px;
+
+	background: #40325F;
+	border-radius: 14px;
+}
+
+.subject-icon {
+	width: 36px;
+	height: 36px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	flex-shrink: 0;
+
+	border-radius: 10px;
+
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: -.02em;
+}
+
+.development {
+	background: #7257C7;
+	color: #fff;
+}
+
+.data {
+	background: #E3AC32;
+	color: #4A3000;
+}
+
+.projects {
+	background: #68C59B;
+	color: #153F30;
+}
+
+.student-info {
+	display: flex;
+	flex-direction: column;
+
+	gap: 2px;
+	flex: 1;
+}
+
+.student-info strong {
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.student-info small {
+	font-size: 11px;
+	color: #D3CBE8;
+}
+
+.student-status {
+	font-size: 11px;
+	font-weight: 700;
+
+	color: #C8B9FF;
+}
+
+.student-status.pending {
+	color: #E7DDFC;
+}
+
+.student-status.grade {
+	color: #71D9AA;
+}
+
+/* TEACHER CARD */
+
+.teacher-card {
+	background: #EEE9FB;
+	color: var(--primary);
+}
+
+.teacher-card .profile-label {
+	color: #6752B2;
+}
+
+.teacher-card p {
+	color: var(--secundary);
+}
+
+.teacher-stats {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+
+	gap: 10px;
+	margin-top: 2rem;
+}
+
+.stat-item {
+	display: flex;
+	align-items: center;
+
+	gap: 10px;
+
+	padding: 12px;
+
+	background: #fff;
+	border-radius: 14px;
+}
+
+.stat-icon {
+	width: 34px;
+	height: 34px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	flex-shrink: 0;
+
+	border-radius: 9px;
+
+	color: #fff;
+	font-size: 15px;
+	font-weight: 800;
+}
+
+.approved {
+	background: #2F7D57;
+}
+
+.promoted {
+	background: #6752B2;
+}
+
+.failed {
+	background: #C4472D;
+}
+
+.absent {
+	background: #D3A12D;
+}
+
+.stat-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.stat-text strong {
+	font-size: 20px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.stat-text small {
+	margin-top: 3px;
+
+	font-size: 11px;
+	color: var(--secundary);
+}
+
+.teacher-groups {
+	display: flex;
+	flex-direction: column;
+
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.group-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	gap: 1rem;
+
+	padding: 11px 14px;
+
+	background: #fff;
+	border-radius: 12px;
+}
+
+.group-row div {
+	display: flex;
+	flex-direction: column;
+
+	gap: 2px;
+}
+
+.group-row strong {
+	font-size: 12px;
+}
+
+.group-row small {
+	font-size: 10px;
+	color: var(--secundary);
+}
+
+.group-row > span {
+	padding: 5px 9px;
+
+	background: #EEE9FB;
+	border-radius: 999px;
+
+	font-size: 11px;
+	font-weight: 700;
+
+	color: #6752B2;
+}

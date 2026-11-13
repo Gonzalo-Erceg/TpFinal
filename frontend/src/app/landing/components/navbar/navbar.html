@@ -1,0 +1,17 @@
+<nav>
+	<div class="logo-contenedor">
+		<img class="logo" src="logo.png" alt="Logo">
+	</div>
+
+	<div class="nav-links">
+		<a (click)="scrollTo('funcionalidades')">Funcionalidades</a>
+		<a (click)="scrollTo('perfiles')">Para quiénes</a>
+		<a (click)="scrollTo('proceso')">Cómo funciona</a>
+		<a (click)="scrollTo('faq')">Preguntas</a>
+	</div>
+
+	<div class="nav-actions">
+		<a class="login-link" routerLink="/login">Ingresar</a>
+		<a class="register-button" routerLink="/registro">Crear cuenta</a>
+	</div>
+</nav>
