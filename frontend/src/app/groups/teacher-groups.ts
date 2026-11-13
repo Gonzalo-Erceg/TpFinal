@@ -17,6 +17,7 @@ export class GruposProfesor implements OnInit {
   cargando = signal(true);
   mensajeError = signal<string | null>(null);
   mostrarDialogo = signal(false);
+  codigoCopiado = signal<string | null>(null);
 
   ngOnInit(): void {
     this.cargarGrupos();
@@ -50,5 +51,15 @@ export class GruposProfesor implements OnInit {
   alCrearGrupo(grupo: GrupoDelProfesor): void {
     this.grupos.update((lista) => [...lista, grupo]);
     this.mostrarDialogo.set(false);
+  }
+
+  copiarCodigo(grupo: GrupoDelProfesor): void {
+    navigator.clipboard.writeText(grupo.codigoDeAcceso).then(() => {
+      this.codigoCopiado.set(grupo.id);
+
+      setTimeout(() => {
+        this.codigoCopiado.set(null);
+      }, 2000);
+    });
   }
 }

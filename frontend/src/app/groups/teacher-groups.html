@@ -15,6 +15,9 @@
         <p>Materia: {{grupo.materia}}</p>
         }
         <p>Codigo: {{grupo.codigoDeAcceso}}</p>
+        <button type="button" (click)="copiarCodigo(grupo)">
+            {{codigoCopiado() === grupo.id ? 'Copiado' : 'Copiar'}}
+        </button>
     </div>
     }
     }
