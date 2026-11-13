@@ -2,8 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
-import { EstadoMembresia, Grupo } from './group.model';
-import { GrupoDelProfesor } from './group.model';
+import { EstadoMembresia, GrupoDelProfesor, Grupo } from './group.model';
+
 
 // Mientras el backend no tenga los endpoints, se usan datos de prueba.
 // Cuando existan GET /groups y POST /groups/join, cambiar esto a false.
@@ -18,10 +18,11 @@ interface GrupoApi {
   membershipStatus: EstadoMembresia;
 }
 
-interface GrupoDelProfesorApi{
+// Forma en que el backend devuelve un grupo al profesor (campos en inglés)
+interface GrupoDelProfesorApi {
   id: string;
   name: string;
-  subject:  string | null;
+  subject: string | null;
   accessCode: string;
 }
 
@@ -53,13 +54,6 @@ export class GruposService {
       .pipe(map((lista) => lista.map((grupoApi) => this.aGrupo(grupoApi))));
   }
 
-  // Equivale a GET /groups (vista del profesor)
-  obtenerGruposProfesor(): Observable<GrupoDelProfesor[]> {
-    return this.http
-      .get<GrupoDelProfesorApi[]>('/groups')
-      .pipe(map((lista) => lista.map((grupoApi) => this.aGrupoDelProfesor(grupoApi))));
-  }
-
   // Equivale a POST /groups/join
   unirseAGrupo(codigo: string): Observable<Grupo> {
     if (USAR_DATOS_DE_PRUEBA) {
@@ -69,6 +63,20 @@ export class GruposService {
     return this.http
       .post<GrupoApi>('/groups/join', { code: codigo })
       .pipe(map((grupoApi) => this.aGrupo(grupoApi)));
+  }
+
+    // Equivale a GET /groups (vista del profesor)
+  obtenerGruposProfesor(): Observable<GrupoDelProfesor[]> {
+    return this.http
+      .get<GrupoDelProfesorApi[]>('/groups')
+      .pipe(map((lista) => lista.map((grupoApi) => this.aGrupoDelProfesor(grupoApi))));
+  }
+
+  // Equivale a POST /groups (vista del profesor)
+  crearGrupo(nombre: string): Observable<GrupoDelProfesor> {
+    return this.http
+      .post<GrupoDelProfesorApi>('/groups', { name: nombre })
+      .pipe(map((grupoApi) => this.aGrupoDelProfesor(grupoApi)));
   }
 
   // Traduce el grupo del backend (inglés) al modelo del front (español)
@@ -83,8 +91,8 @@ export class GruposService {
   }
 
   // Traduce el grupo del profesor del backend (inglés) al modelo del front (español)
-  private aGrupoDelProfesor(grupoApi: GrupoDelProfesorApi): GrupoDelProfesor{
-    return{
+  private aGrupoDelProfesor(grupoApi: GrupoDelProfesorApi): GrupoDelProfesor {
+    return {
       id: grupoApi.id,
       nombre: grupoApi.name,
       materia: grupoApi.subject,
