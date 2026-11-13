@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
 import { EstadoMembresia, Grupo } from './group.model';
+import { GrupoDelProfesor } from './group.model';
 
 // Mientras el backend no tenga los endpoints, se usan datos de prueba.
 // Cuando existan GET /groups y POST /groups/join, cambiar esto a false.
@@ -15,6 +16,13 @@ interface GrupoApi {
   subject: string;
   teacher: string;
   membershipStatus: EstadoMembresia;
+}
+
+interface GrupoDelProfesorApi{
+  id: string;
+  name: string;
+  subject:  string | null;
+  accessCode: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,6 +53,13 @@ export class GruposService {
       .pipe(map((lista) => lista.map((grupoApi) => this.aGrupo(grupoApi))));
   }
 
+  // Equivale a GET /groups (vista del profesor)
+  obtenerGruposProfesor(): Observable<GrupoDelProfesor[]> {
+    return this.http
+      .get<GrupoDelProfesorApi[]>('/groups')
+      .pipe(map((lista) => lista.map((grupoApi) => this.aGrupoDelProfesor(grupoApi))));
+  }
+
   // Equivale a POST /groups/join
   unirseAGrupo(codigo: string): Observable<Grupo> {
     if (USAR_DATOS_DE_PRUEBA) {
@@ -64,6 +79,16 @@ export class GruposService {
       materia: grupoApi.subject,
       profesor: grupoApi.teacher,
       estadoMembresia: grupoApi.membershipStatus,
+    };
+  }
+
+  // Traduce el grupo del profesor del backend (inglés) al modelo del front (español)
+  private aGrupoDelProfesor(grupoApi: GrupoDelProfesorApi): GrupoDelProfesor{
+    return{
+      id: grupoApi.id,
+      nombre: grupoApi.name,
+      materia: grupoApi.subject,
+      codigoDeAcceso: grupoApi.accessCode,
     };
   }
 
