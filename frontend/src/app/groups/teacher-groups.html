@@ -1,0 +1,20 @@
+<main class="pagina">
+    <h1>Mis grupos</h1>
+    @if(cargando()){
+    <p>Cargando grupos</p>
+    }@else if(mensajeError()){
+    <p>{{ mensajeError()}}</p>
+    }@else if(grupos().length === 0){
+    <p>No hay grupos cargados</p>
+    }@else{
+    @for (grupo of grupos(); track grupo.id){
+    <div>
+        <h2> {{grupo.nombre}}</h2>
+        @if(grupo.materia){
+        <p>Materia: {{grupo.materia}}</p>
+        }
+        <p>Codigo: {{grupo.codigoDeAcceso}}</p>
+    </div>
+    }
+    }
+</main>

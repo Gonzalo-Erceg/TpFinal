@@ -96,6 +96,13 @@ export class GruposService {
       .pipe(map((lista) => lista.map((alumnoApi) => this.aAlumno(alumnoApi))));
   }
 
+  // Equivale a PATCH /groups/:id/members/:userId
+  cambiarEstadoMiembro(grupoId: string, alumnoId: string, estado: EstadoAlumno): Observable<Alumno> {
+    return this.http
+      .patch<AlumnoApi>(`/groups/${grupoId}/members/${alumnoId}`, { status: estado })
+      .pipe(map((alumnoApi) => this.aAlumno(alumnoApi)));
+  }
+
   // Traduce el grupo del backend (inglés) al modelo del front (español)
   private aGrupo(grupoApi: GrupoApi): Grupo {
     return {
@@ -117,9 +124,9 @@ export class GruposService {
     };
   }
 
-// Traduce un miembro del grupo del backend (inglés) al modelo del front (español)
-  private aAlumno(alumnoApi: AlumnoApi): Alumno{
-    return{
+  // Traduce un miembro del grupo del backend (inglés) al modelo del front (español)
+  private aAlumno(alumnoApi: AlumnoApi): Alumno {
+    return {
       id: alumnoApi.userId,
       nombre: alumnoApi.firstName,
       apellido: alumnoApi.lastName,
