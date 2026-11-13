@@ -9,10 +9,7 @@ import { RouterLink } from '@angular/router';
 })
 export class Navbar {
   scrollTo(sectionId: string): void {
-    const section = document.getElementById(sectionId);
-
-    console.log('Buscando sección:', sectionId, section);
-    
+    const section = document.getElementById(sectionId);    
     if (section) {
       section.scrollIntoView({
         behavior: 'smooth',
