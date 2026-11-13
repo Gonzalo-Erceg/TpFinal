@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
-import { EstadoMembresia, GrupoDelProfesor, Grupo } from './group.model';
+import { EstadoMembresia, GrupoDelProfesor, Grupo, Alumno, EstadoAlumno } from './group.model';
 
 
 // Mientras el backend no tenga los endpoints, se usan datos de prueba.
@@ -24,6 +24,16 @@ interface GrupoDelProfesorApi {
   name: string;
   subject: string | null;
   accessCode: string;
+}
+
+// Forma en que el backend devuelve un miembro del grupo (campos en inglés)
+interface AlumnoApi {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: EstadoAlumno;
+  requestedAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -65,7 +75,7 @@ export class GruposService {
       .pipe(map((grupoApi) => this.aGrupo(grupoApi)));
   }
 
-    // Equivale a GET /groups (vista del profesor)
+  // Equivale a GET /groups (vista del profesor)
   obtenerGruposProfesor(): Observable<GrupoDelProfesor[]> {
     return this.http
       .get<GrupoDelProfesorApi[]>('/groups')
@@ -77,6 +87,13 @@ export class GruposService {
     return this.http
       .post<GrupoDelProfesorApi>('/groups', { name: nombre })
       .pipe(map((grupoApi) => this.aGrupoDelProfesor(grupoApi)));
+  }
+
+  // Equivale a GET /groups/:id/members
+  obtenerMiembros(grupoId: string): Observable<Alumno[]> {
+    return this.http
+      .get<AlumnoApi[]>(`/groups/${grupoId}/members`)
+      .pipe(map((lista) => lista.map((alumnoApi) => this.aAlumno(alumnoApi))));
   }
 
   // Traduce el grupo del backend (inglés) al modelo del front (español)
@@ -97,6 +114,18 @@ export class GruposService {
       nombre: grupoApi.name,
       materia: grupoApi.subject,
       codigoDeAcceso: grupoApi.accessCode,
+    };
+  }
+
+// Traduce un miembro del grupo del backend (inglés) al modelo del front (español)
+  private aAlumno(alumnoApi: AlumnoApi): Alumno{
+    return{
+      id: alumnoApi.userId,
+      nombre: alumnoApi.firstName,
+      apellido: alumnoApi.lastName,
+      email: alumnoApi.email,
+      estado: alumnoApi.status,
+      fechaSolicitud: alumnoApi.requestedAt,
     };
   }
 
