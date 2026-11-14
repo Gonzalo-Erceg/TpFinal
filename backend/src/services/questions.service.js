@@ -7,12 +7,9 @@ const QUESTION_TYPES = [
     'MULTIPLE_CHOICE',
     'TRUE_FALSE',
     'SHORT_TEXT',
-    'ESSAY',
-    'MATCHING',
-    'ORDERING',
-    'FILE_UPLOAD'
 ];
-
+// La base de datos contiene otros tipos para un futuro,
+// pero actualmente la aplicación solo usa estos cuatro.
 class QuestionsService {
 
     async create(data, user) {
