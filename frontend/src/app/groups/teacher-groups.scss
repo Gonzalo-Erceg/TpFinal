@@ -426,3 +426,80 @@
   letter-spacing: -0.03em;
   margin: 0 0 18px;
 }
+
+[data-estado='REMOVED'] {
+  --fondo-estado: var(--bg);
+  --texto-estado: var(--muted);
+  --borde-estado: var(--border);
+}
+
+[data-estado='REJECTED'] {
+  --acento-estado: var(--error-acento);
+  --fondo-estado: var(--error-fondo);
+  --texto-estado: var(--error-texto);
+  --borde-estado: var(--error-borde);
+}
+
+[data-estado='ACTIVE'] {
+  --acento-estado: var(--ok-acento);
+  --fondo-estado: var(--ok-fondo);
+  --texto-estado: var(--ok-texto);
+  --borde-estado: var(--ok-borde);
+}
+
+[data-estado='PENDING'] {
+  --acento-estado: var(--pendiente-acento);
+  --fondo-estado: var(--pendiente-fondo);
+  --texto-estado: var(--pendiente-texto);
+  --borde-estado: var(--pendiente-borde);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--fondo-estado);
+  border: 1px solid var(--borde-estado);
+  color: var(--texto-estado);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tabla-contenedor {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 20px;;        
+  overflow-x: auto;         
+}
+
+.tabla {
+  width: 100%;               
+  border-collapse: collapse; 
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 14px;            
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;  
+    letter-spacing: 0.04em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;        
+  }
+}
+
+.boton-chico {
+  padding: 7px;              
+  font-size: 13px;
+}

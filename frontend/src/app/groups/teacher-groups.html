@@ -49,37 +49,45 @@
             Compartí el código de acceso con tus alumnos para que se unan.
         </div>
         } @else {
-        <table>
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Estado</th>
-                    <th>Fecha de solicitud</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (miembro of miembros(); track miembro.id) {
-                <tr>
-                    <td>{{ miembro.nombre }} {{ miembro.apellido }}</td>
-                    <td>{{ miembro.email }}</td>
-                    <td>{{ etiquetasEstado[miembro.estado] }}</td>
-                    <td>{{ miembro.fechaSolicitud | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td>
-                        @if (miembro.estado === 'PENDING') {
-                        <button type="button" (click)="cambiarEstado(miembro, 'ACTIVE')">Aprobar</button>
-                        <button type="button" (click)="cambiarEstado(miembro, 'REJECTED')">Rechazar</button>
-                        } @else if (miembro.estado === 'ACTIVE') {
-                        <button type="button" (click)="cambiarEstado(miembro, 'REMOVED')">Quitar</button>
-                        } @else {
-                        <span>—</span>
-                        }
-                    </td>
-                </tr>
-                }
-            </tbody>
-        </table>
+        <div class="tabla-contenedor">
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th>Fecha de solicitud</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (miembro of miembros(); track miembro.id) {
+                    <tr>
+                        <td>{{ miembro.nombre }} {{ miembro.apellido }}</td>
+                        <td>{{ miembro.email }}</td>
+                        <td>
+                            <span class="chip"
+                                [attr.data-estado]="miembro.estado">{{etiquetasEstado[miembro.estado]}}</span>
+                        </td>
+                        <td>{{ miembro.fechaSolicitud | date: 'dd/MM/yyyy HH:mm' }}</td>
+                        <td>
+                            @if (miembro.estado === 'PENDING') {
+                            <button type="button" boton-secundario boton-chico
+                                (click)="cambiarEstado(miembro, 'ACTIVE')">Aprobar</button>
+                            <button type="button" boton-secundario boton-chico
+                                (click)="cambiarEstado(miembro, 'REJECTED')">Rechazar</button>
+                            } @else if (miembro.estado === 'ACTIVE') {
+                            <button type="button" boton-secundario boton-chico
+                                (click)="cambiarEstado(miembro, 'REMOVED')">Quitar</button>
+                            } @else {
+                            <span>—</span>
+                            }
+                        </td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
         }
     </section>
     }
