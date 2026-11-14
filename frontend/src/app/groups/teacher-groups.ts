@@ -1,8 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { GruposService } from './groups.service';
-import { GrupoDelProfesor, Alumno } from './group.model';
+import { GrupoDelProfesor, Alumno, EstadoAlumno } from './group.model';
 import { DialogoCrearGrupo } from './create-group-dialog';
 import { DatePipe } from '@angular/common';
+
 
 @Component({
   imports: [DialogoCrearGrupo, DatePipe],
@@ -23,6 +24,15 @@ export class GruposProfesor implements OnInit {
   miembros = signal<Alumno[]>([]);
   cargandoMiembros = signal(false);
   errorMiembros = signal<string | null>(null);
+  errorAccion = signal<string |null>(null);
+
+  // Texto que se muestra para cada estado
+  etiquetasEstado: Record<EstadoAlumno, string> = {
+    PENDING: 'Pendiente',
+    ACTIVE: 'Activo',
+    REJECTED: 'Rechazado',
+    REMOVED: 'Removido',
+  };
 
   ngOnInit(): void {
     this.cargarGrupos();
@@ -69,12 +79,13 @@ export class GruposProfesor implements OnInit {
   }
 
   //Se ejecuta al hacer clic en "Ver solicitudes"
-  seleccionarGrupo(grupo: GrupoDelProfesor): void{
+  seleccionarGrupo(grupo: GrupoDelProfesor): void {
     this.grupoSeleccionado.set(grupo);
+    this.errorAccion.set(null);
     this.cargarMiembros(grupo.id);
   }
 
-  cargarMiembros(grupoId: string):void{
+  cargarMiembros(grupoId: string): void {
     this.cargandoMiembros.set(true);
     this.errorMiembros.set(null);
 
@@ -86,6 +97,26 @@ export class GruposProfesor implements OnInit {
       error: () => {
         this.errorMiembros.set('No se pudieron cargar las solicitudes. Intentá de nuevo.');
         this.cargandoMiembros.set(false);
+      },
+    });
+  }
+
+  cambiarEstado(miembro: Alumno, nuevoEstado: EstadoAlumno): void {
+    const grupo = this.grupoSeleccionado();
+    if (!grupo) {
+      return;
+    }
+
+    this.errorAccion.set(null);
+
+    this.grupoService.cambiarEstadoMiembro(grupo.id, miembro.id, nuevoEstado).subscribe({
+      next: (miembroActualizado) => {
+        this.miembros.update((lista) =>
+          lista.map((m) => (m.id === miembroActualizado.id ? miembroActualizado : m))
+        );
+      },
+      error: () => {
+        this.errorAccion.set('No se pudo actualizar la solicitud. Intentá de nuevo.');
       },
     });
   }
