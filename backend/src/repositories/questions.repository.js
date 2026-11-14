@@ -25,10 +25,12 @@ class QuestionsRepository {
                 .input('questionId', sql.UniqueIdentifier, questionId)
                 .input('questionType', sql.NVarChar(40), data.type)
                 .input('statement', sql.NVarChar(sql.MAX), data.statement)
+                .input('contentJson', sql.NVarChar(sql.MAX), data.contentJson ? JSON.stringify(data.contentJson) : null)
+                .input('gradingConfigJson', sql.NVarChar(sql.MAX), data.gradingConfigJson ? JSON.stringify(data.gradingConfigJson) : null)
                 .query(`
-					INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement)
+					INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement, ContentJson, GradingConfigJson)
 					OUTPUT INSERTED.Id
-					VALUES (@questionId, 1, @questionType, @statement)`
+					VALUES (@questionId, 1, @questionType, @statement, @ContentJson, @GradingConfigJson)`
                 );
 
             const revisionId = revisionResult.recordset[0].Id;
@@ -183,10 +185,12 @@ class QuestionsRepository {
                 .input('revisionNumber', sql.Int, newRevisionNumber)
                 .input('questionType', sql.NVarChar(40), data.type)
                 .input('statement', sql.NVarChar(sql.MAX), data.statement)
+                .input('contentJson', sql.NVarChar(sql.MAX), data.contentJson ? JSON.stringify(data.contentJson) : null)
+                .input('gradingConfigJson', sql.NVarChar(sql.MAX), data.gradingConfigJson ? JSON.stringify(data.gradingConfigJson) : null)
                 .query(`
-				INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement)
+				INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement, ContentJson, GradingConfigJson)
 				OUTPUT INSERTED.Id
-				VALUES (@questionId, @revisionNumber, @questionType, @statement)
+				VALUES (@questionId, @revisionNumber, @questionType, @statement, @contentJson, @gradingConfigJson)
 			    `);
 
             const newRevisionId = newRevisionResult.recordset[0].Id;
