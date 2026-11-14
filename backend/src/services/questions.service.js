@@ -35,7 +35,7 @@ class QuestionsService {
                 throw new AuthError('Debe tener al menos dos opciones');
             }
 
-            if (options.some(option => !option.content || !option.content.trim())) {
+            if (options.some(option => typeof option.content !== 'string' || !option.content.trim())) {
                 throw new AuthError('Las opciones no pueden estar vacías');
             }
 
@@ -99,6 +99,66 @@ class QuestionsService {
         }
 
         return questions;
+    }
+    async delete(questionId, teacherId) {
+        const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        if (!guidRegex.test(questionId)) {
+            throw new AuthError('ID de pregunta inválido', 400);
+        }
+
+        const deleted = await questionsRepository.delete(questionId, teacherId)
+        if (deleted === 0) {
+            throw new AuthError('Pregunta no encontrada', 404);
+        }
+
+        return { message: 'Pregunta eliminada correctamente' };
+    }
+    async update(questionId, teacherId, data) {
+        const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+        if (!guidRegex.test(questionId)) {
+            throw new AuthError('ID de pregunta inválido', 400);
+        }
+
+        const question = await questionsRepository.findByIdAndTeacher(questionId, teacherId);
+
+        if (!question) {
+            throw new AuthError('Pregunta no encontrada', 404);
+        }
+
+        const { title, type, statement, options } = data;
+
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            throw new AuthError('El título es obligatorio');
+        }
+
+        if (!type || !QUESTION_TYPES.includes(type)) {
+            throw new AuthError('El tipo de pregunta no es válido');
+        }
+
+        if (!statement || typeof statement !== 'string' || !statement.trim()) {
+            throw new AuthError('El enunciado es obligatorio');
+        }
+
+        if (type === 'SINGLE_CHOICE') {
+            if (!Array.isArray(options) || options.length < 2) {
+                throw new AuthError('Debe tener al menos dos opciones');
+            }
+
+            if (options.some(option => typeof option.content !== 'string' || !option.content.trim())) {
+                throw new AuthError('Las opciones no pueden estar vacías');
+            }
+
+            if (options.filter(option => option.creditFraction === 1).length !== 1) {
+                throw new AuthError('Debe tener una sola opción correcta');
+            }
+
+            if (options.some(option => option.creditFraction !== 0 && option.creditFraction !== 1)) {
+                throw new AuthError('Las opciones deben tener crédito 0 o 1');
+            }
+        }
+
+        return questionsRepository.update(questionId, data);
     }
 }
 

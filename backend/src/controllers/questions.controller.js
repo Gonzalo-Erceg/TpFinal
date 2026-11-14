@@ -30,6 +30,34 @@ class QuestionsController {
             });
 		}
 	}
+	async delete(req, res){
+		try{
+			const result = await questionsService.delete(req.params.id, req.user.id);
+			res.status(200).json(result)
+		}
+		catch(error){
+			console.error('ERROR EN QUESTIONS', error);
+			res.status(error.statusCode || 500).json({
+				message: error.statusCode
+					? error.message
+					: 'Error interno del servidor'
+			})
+		}
+	}
+	async update(req, res){
+		try{
+			const result = await questionsService.update(req.params.id, req.user.id, req.body);
+			res.status(200).json(result)
+		}
+		catch(error){
+			console.error('ERROR EN QUESTIONS', error);
+			res.status(error.statusCode || 500).json({
+				message: error.statusCode
+					? error.message
+					: 'Error interno del servidor'
+			})
+		}
+	} 
 }
 
 module.exports = QuestionsController;
