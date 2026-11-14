@@ -1,9 +1,11 @@
 export type EstadoMembresia = 'PENDING' | 'ACTIVE' | 'REJECTED';
 
 export interface Grupo {
-  id: number;
+  // El backend usa GUID (texto), no números
+  id: string;
   nombre: string;
-  materia: string;
+  // El profesor puede crear un grupo sin materia
+  materia: string | null;
   profesor: string;
   estadoMembresia: EstadoMembresia;
 }

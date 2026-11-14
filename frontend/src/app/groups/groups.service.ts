@@ -5,15 +5,15 @@ import { delay, map } from 'rxjs/operators';
 import { EstadoMembresia, GrupoDelProfesor, Grupo, Alumno, EstadoAlumno } from './group.model';
 
 
-// Mientras el backend no tenga los endpoints, se usan datos de prueba.
-// Cuando existan GET /groups y POST /groups/join, cambiar esto a false.
-const USAR_DATOS_DE_PRUEBA = true;
+// En false usa GET /groups y POST /groups/join del backend.
+// Para ver la pantalla sin la base, ponerlo en true (sin commitearlo).
+const USAR_DATOS_DE_PRUEBA = false;
 
 // Forma en que el backend devuelve un grupo (campos en inglés)
 interface GrupoApi {
-  id: number;
+  id: string;
   name: string;
-  subject: string;
+  subject: string | null;
   teacher: string;
   membershipStatus: EstadoMembresia;
 }
@@ -42,15 +42,16 @@ export class GruposService {
 
   // DATOS DE PRUEBA: grupos del alumno
   private grupos: Grupo[] = [
-    { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'ACTIVE' },
-    { id: 2, nombre: 'Programación I - Comisión B', materia: 'Programación I', profesor: 'Prof. López', estadoMembresia: 'PENDING' },
-    { id: 3, nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'REJECTED' },
+    { id: '1', nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'ACTIVE' },
+    { id: '2', nombre: 'Programación I - Comisión B', materia: 'Programación I', profesor: 'Prof. López', estadoMembresia: 'PENDING' },
+    { id: '3', nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'REJECTED' },
   ];
 
   // DATOS DE PRUEBA: códigos que "existen" en el sistema, con el mismo formato que genera el backend
   private codigosValidos: Record<string, Grupo> = {
-    TEC4XK7P: { id: 4, nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
-    MATE2345: { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
+    TEC4XK7P: { id: '4', nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
+    MATE2345: { id: '1', nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
+    TUTR6789: { id: '5', nombre: 'Tutoría de ingreso', materia: null, profesor: 'Prof. Ruiz', estadoMembresia: 'PENDING' },
   };
 
   // Equivale a GET /groups

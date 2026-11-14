@@ -78,15 +78,21 @@
         @for (grupo of gruposFiltrados(); track grupo.id) {
           <article class="grupo" [attr.data-estado]="grupo.estadoMembresia">
             <div class="grupo-cabecera">
-              <span class="inicial" aria-hidden="true">{{ grupo.materia.charAt(0) }}</span>
+              <span class="inicial" aria-hidden="true">{{ (grupo.materia ?? grupo.nombre).charAt(0) }}</span>
               <span class="chip">
                 <span aria-hidden="true">{{ iconosEstado[grupo.estadoMembresia] }}</span>
                 {{ etiquetasEstado[grupo.estadoMembresia] }}
               </span>
             </div>
 
-            <h3 class="grupo-titulo">{{ grupo.materia }}</h3>
-            <p class="grupo-meta">{{ grupo.nombre }} · {{ grupo.profesor }}</p>
+            <!-- Sin materia, el nombre del grupo pasa a ser el título para no repetirlo -->
+            @if (grupo.materia) {
+              <h3 class="grupo-titulo">{{ grupo.materia }}</h3>
+              <p class="grupo-meta">{{ grupo.nombre }} · {{ grupo.profesor }}</p>
+            } @else {
+              <h3 class="grupo-titulo">{{ grupo.nombre }}</h3>
+              <p class="grupo-meta">{{ grupo.profesor }}</p>
+            }
             <p class="grupo-ayuda">{{ ayudaEstado[grupo.estadoMembresia] }}</p>
           </article>
         }

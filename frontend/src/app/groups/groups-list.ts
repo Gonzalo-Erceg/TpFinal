@@ -148,6 +148,6 @@ export class ListaGrupos implements OnInit {
   alEnviarSolicitud(grupo: Grupo): void {
     this.grupos.update((lista) => [...lista, grupo]);
     this.mostrarDialogo.set(false);
-    this.mensajeExito.set(`Solicitud enviada a "${grupo.materia}". Queda pendiente hasta que el docente la apruebe.`);
+    this.mensajeExito.set(`Solicitud enviada a "${grupo.materia ?? grupo.nombre}". Queda pendiente hasta que el docente la apruebe.`);
   }
 }
