@@ -1,0 +1,34 @@
+<div class="fondo" (click)="cerrar.emit()">
+    <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-dialogo"
+        (click)="$event.stopPropagation()" (keydown.escape)="cerrar.emit()">
+        <h3 id="titulo-dialogo">Crear grupo</h3>
+        <p>Ingresá un nombre para tu nuevo grupo.</p>
+
+        <form (submit)="enviar($event)">
+            <label for="nombre">Nombre del grupo</label>
+            <input id="nombre" type="text" [formControl]="nombre" autocomplete="off"
+                placeholder="Ej: Programación I - Comisión A" />
+
+            @if (nombre.touched && nombre.invalid) {
+            <p class="error" role="alert">
+                @if (nombre.hasError('required')) {
+                Ingresá el nombre del grupo.
+                } @else if (nombre.hasError('maxlength')) {
+                El nombre no puede superar los 150 caracteres.
+                }
+            </p>
+            }
+
+            @if (errorServidor()) {
+            <p class="error" role="alert">{{ errorServidor() }}</p>
+            }
+
+            <div class="acciones">
+                <button type="button" (click)="cerrar.emit()">Cancelar</button>
+                <button type="submit" [disabled]="enviando()">
+                    {{ enviando() ? 'Creando...' : 'Crear grupo' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
