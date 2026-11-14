@@ -18,11 +18,48 @@
         <button type="button" (click)="copiarCodigo(grupo)">
             {{codigoCopiado() === grupo.id ? 'Copiado' : 'Copiar'}}
         </button>
+        <button type="button" (click)="seleccionarGrupo(grupo)">
+            Ver solicitudes
+        </button>
     </div>
     }
+    }
+    @if (grupoSeleccionado()) {
+    <section>
+        <h2>Solicitudes de {{ grupoSeleccionado()?.nombre }}</h2>
+
+        @if (cargandoMiembros()) {
+        <p>Cargando solicitudes...</p>
+        } @else if (errorMiembros()) {
+        <p>{{ errorMiembros() }}</p>
+        } @else if (miembros().length === 0) {
+        <p>Este grupo todavía no tiene solicitudes.</p>
+        } @else {
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Estado</th>
+                    <th>Fecha de Solicitud</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (miembro of miembros(); track miembro.id) {
+                <tr>
+                    <td>{{ miembro.nombre }} {{ miembro.apellido }}</td>
+                    <td>{{ miembro.email }}</td>
+                    <td>{{ miembro.estado }}</td>
+                    <td>{{ miembro.fechaSolicitud | date: 'dd/MM/yyyy HH:mm' }}</td>
+                </tr>
+                }
+            </tbody>
+        </table>
+        }
+    </section>
     }
 </main>
 
 @if (mostrarDialogo()) {
-  <app-dialogo-crear-grupo (grupoCreado)="alCrearGrupo($event)" (cerrar)="cerrarDialogo()" />
+<app-dialogo-crear-grupo (grupoCreado)="alCrearGrupo($event)" (cerrar)="cerrarDialogo()" />
 }

@@ -1,10 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { GruposService } from './groups.service';
-import { GrupoDelProfesor } from './group.model';
+import { GrupoDelProfesor, Alumno } from './group.model';
 import { DialogoCrearGrupo } from './create-group-dialog';
+import { DatePipe } from '@angular/common';
 
 @Component({
-  imports: [DialogoCrearGrupo],
+  imports: [DialogoCrearGrupo, DatePipe],
   selector: 'app-grupos-profesor',
   styleUrl: './teacher-groups.scss',
   templateUrl: './teacher-groups.html',
@@ -18,6 +19,10 @@ export class GruposProfesor implements OnInit {
   mensajeError = signal<string | null>(null);
   mostrarDialogo = signal(false);
   codigoCopiado = signal<string | null>(null);
+  grupoSeleccionado = signal<GrupoDelProfesor | null>(null);
+  miembros = signal<Alumno[]>([]);
+  cargandoMiembros = signal(false);
+  errorMiembros = signal<string | null>(null);
 
   ngOnInit(): void {
     this.cargarGrupos();
@@ -60,6 +65,28 @@ export class GruposProfesor implements OnInit {
       setTimeout(() => {
         this.codigoCopiado.set(null);
       }, 2000);
+    });
+  }
+
+  //Se ejecuta al hacer clic en "Ver solicitudes"
+  seleccionarGrupo(grupo: GrupoDelProfesor): void{
+    this.grupoSeleccionado.set(grupo);
+    this.cargarMiembros(grupo.id);
+  }
+
+  cargarMiembros(grupoId: string):void{
+    this.cargandoMiembros.set(true);
+    this.errorMiembros.set(null);
+
+    this.grupoService.obtenerMiembros(grupoId).subscribe({
+      next: (miembros) => {
+        this.miembros.set(miembros);
+        this.cargandoMiembros.set(false);
+      },
+      error: () => {
+        this.errorMiembros.set('No se pudieron cargar las solicitudes. Intentá de nuevo.');
+        this.cargandoMiembros.set(false);
+      },
     });
   }
 }
