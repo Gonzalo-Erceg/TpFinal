@@ -17,10 +17,10 @@ export class DialogoUnirse {
   solicitudEnviada = output<Grupo>();
   cerrar = output<void>();
 
-  // Campo del código con sus validaciones
+  // El backend genera códigos de 8 letras o números (ver backend/src/utils/access-code.js)
   codigo = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.pattern(/^[A-Za-z0-9]{6}$/)],
+    validators: [Validators.required, Validators.pattern(/^[A-Za-z0-9]{8}$/)],
   });
 
   enviando = signal(false);

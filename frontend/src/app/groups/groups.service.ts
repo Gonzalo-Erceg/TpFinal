@@ -47,10 +47,10 @@ export class GruposService {
     { id: 3, nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'REJECTED' },
   ];
 
-  // DATOS DE PRUEBA: códigos que "existen" en el sistema
+  // DATOS DE PRUEBA: códigos que "existen" en el sistema, con el mismo formato que genera el backend
   private codigosValidos: Record<string, Grupo> = {
-    ABC123: { id: 4, nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
-    MAT001: { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
+    TEC4XK7P: { id: 4, nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
+    MATE2345: { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
   };
 
   // Equivale a GET /groups
