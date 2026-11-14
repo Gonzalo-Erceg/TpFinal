@@ -1,41 +1,53 @@
 <main class="pagina">
-    <h1>Mis grupos</h1>
-    <button type="button" (click)="abrirDialogo()">+ Crear grupo</button>
+    <header class="encabezado">
+        <h1 class="titulo">Mis grupos</h1>
+        <button type="button" class="boton-principal" (click)="abrirDialogo()">+ Crear grupo</button>
+    </header>
     @if(cargando()){
-    <p>Cargando grupos</p>
+    <p class="aviso">Cargando grupos</p>
     }@else if(mensajeError()){
-    <p>{{ mensajeError()}}</p>
+    <p class="error">{{ mensajeError()}}</p>
     }@else if(grupos().length === 0){
-    <p>No hay grupos cargados</p>
+    <div class="vacio">
+        <strong>Todavía no creaste grupos</strong>
+        Tocá "+ Crear grupo" para crear el primero.
+    </div>
     }@else{
-    @for (grupo of grupos(); track grupo.id){
-    <div>
-        <h2> {{grupo.nombre}}</h2>
-        @if(grupo.materia){
-        <p>Materia: {{grupo.materia}}</p>
+    <div class="grupos">
+        @for (grupo of grupos(); track grupo.id){
+        <article class="grupo">
+            <h3 class="grupo-titulo">{{grupo.nombre}}</h3>
+            @if(grupo.materia){
+            <p class="grupo-meta">Materia: {{grupo.materia}}</p>
+            }
+            <p class="grupo-meta">Codigo: {{grupo.codigoDeAcceso}}</p>
+            <div class="grupo-acciones">
+                <button type="button" class="boton-secundario" (click)=" copiarCodigo(grupo)">
+                    {{codigoCopiado() === grupo.id ? 'Copiado' : 'Copiar'}}
+                </button>
+                <button type="button" class="boton-secundario" (click)=" seleccionarGrupo(grupo)">
+                    Ver solicitudes
+                </button>
+            </div>
+        </article>
         }
-        <p>Codigo: {{grupo.codigoDeAcceso}}</p>
-        <button type="button" (click)="copiarCodigo(grupo)">
-            {{codigoCopiado() === grupo.id ? 'Copiado' : 'Copiar'}}
-        </button>
-        <button type="button" (click)="seleccionarGrupo(grupo)">
-            Ver solicitudes
-        </button>
     </div>
     }
-    }
     @if (grupoSeleccionado()) {
-    <section>
-        <h2>Solicitudes de {{ grupoSeleccionado()?.nombre }}</h2>
+    <section class="solicitudes">
+        <h2 class="seccion-titulo">Solicitudes de {{ grupoSeleccionado()?.nombre }}</h2>
         @if (errorAccion()) {
-        <p>{{ errorAccion() }}</p>
+        <p class="error">{{ errorAccion() }}</p>
         }
         @if (cargandoMiembros()) {
-        <p>Cargando solicitudes...</p>
+        <p class="aviso">Cargando solicitudes...</p>
         } @else if (errorMiembros()) {
-        <p>{{ errorMiembros() }}</p>
+        <p class="error">{{ errorMiembros() }}</p>
         } @else if (miembros().length === 0) {
-        <p>Este grupo todavía no tiene solicitudes.</p>
+        <div class="vacio">
+            <strong>Este grupo todavía no tiene solicitudes</strong>
+            Compartí el código de acceso con tus alumnos para que se unan.
+        </div>
         } @else {
         <table>
             <thead>
