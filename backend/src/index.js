@@ -7,6 +7,7 @@ require('dotenv').config({
 const express = require("express")
 const authRouter = require("./routers/auth.router")
 const groupsRouter = require("./routers/groups.router")
+const examsRouter = require("./routers/exams.router")
 const helmet = require("helmet")
 
 
@@ -27,7 +28,7 @@ app.get("/heal-check",(req,res)=>{
 
 app.use("/auth",authRouter)
 app.use("/groups", groupsRouter)
-
+app.use("/exams", examsRouter)
 
 app.listen(PORT,HOST,()=>{
     console.log(`Servidor levantado en http://${HOST}:${PORT}`)
