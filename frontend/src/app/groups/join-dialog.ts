@@ -16,10 +16,10 @@ export class DialogoUnirse {
   solicitudEnviada = output<Grupo>();
   cerrar = output<void>();
 
-  // Campo del código con sus validaciones
+  // El backend genera códigos de 8 letras o números (ver backend/src/utils/access-code.js)
   codigo = new FormControl('', {
     nonNullable: true,
-    validators: [Validators.required, Validators.pattern(/^[A-Za-z0-9]{6}$/)],
+    validators: [Validators.required, Validators.pattern(/^[A-Za-z0-9]{8}$/)],
   });
 
   enviando = signal(false);
@@ -49,6 +49,13 @@ export class DialogoUnirse {
   }
 
   private mensajeParaError(error: HttpErrorResponse): string {
+    // En los 4xx el backend explica el motivo en { message }; en los 5xx manda un texto genérico
+    const mensajeDelBackend = error.error?.message;
+    if (mensajeDelBackend && error.status >= 400 && error.status < 500) {
+      return mensajeDelBackend;
+    }
+
+    // Por si el backend no manda mensaje
     switch (error.status) {
       case 400:
         return 'El código no tiene un formato válido.';

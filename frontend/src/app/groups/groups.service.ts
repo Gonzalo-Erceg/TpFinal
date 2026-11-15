@@ -1,19 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { delay, map } from 'rxjs/operators';
+import { Observable, of, throwError, timer } from 'rxjs';
+import { delay, map, switchMap } from 'rxjs/operators';
 import { EstadoMembresia, GrupoDelProfesor, Grupo, Alumno, EstadoAlumno } from './group.model';
 
 
-// Mientras el backend no tenga los endpoints, se usan datos de prueba.
-// Cuando existan GET /groups y POST /groups/join, cambiar esto a false.
-const USAR_DATOS_DE_PRUEBA = true;
+// En false usa GET /groups y POST /groups/join del backend.
+// Para ver la pantalla sin la base, ponerlo en true (sin commitearlo).
+const USAR_DATOS_DE_PRUEBA = false;
 
 // Forma en que el backend devuelve un grupo (campos en inglés)
 interface GrupoApi {
-  id: number;
+  id: string;
   name: string;
-  subject: string;
+  subject: string | null;
   teacher: string;
   membershipStatus: EstadoMembresia;
 }
@@ -42,15 +42,18 @@ export class GruposService {
 
   // DATOS DE PRUEBA: grupos del alumno
   private grupos: Grupo[] = [
-    { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'ACTIVE' },
-    { id: 2, nombre: 'Programación I - Comisión B', materia: 'Programación I', profesor: 'Prof. López', estadoMembresia: 'PENDING' },
-    { id: 3, nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'REJECTED' },
+    { id: '1', nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'ACTIVE' },
+    { id: '2', nombre: 'Programación I - Comisión B', materia: 'Programación I', profesor: 'Prof. López', estadoMembresia: 'PENDING' },
+    { id: '3', nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'REJECTED' },
   ];
 
-  // DATOS DE PRUEBA: códigos que "existen" en el sistema
+  // DATOS DE PRUEBA: códigos que "existen" en el sistema, con el mismo formato que genera el backend
   private codigosValidos: Record<string, Grupo> = {
-    ABC123: { id: 4, nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
-    MAT001: { id: 1, nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
+    TEC4XK7P: { id: '4', nombre: 'Inglés Técnico - Comisión A', materia: 'Inglés Técnico', profesor: 'Prof. Gómez', estadoMembresia: 'PENDING' },
+    MATE2345: { id: '1', nombre: 'Matemática - Comisión A', materia: 'Matemática', profesor: 'Prof. Pérez', estadoMembresia: 'PENDING' },
+    PROG4567: { id: '2', nombre: 'Programación I - Comisión B', materia: 'Programación I', profesor: 'Prof. López', estadoMembresia: 'PENDING' },
+    BASE7DAT: { id: '3', nombre: 'Base de Datos - Comisión C', materia: 'Base de Datos', profesor: 'Prof. Díaz', estadoMembresia: 'PENDING' },
+    TUTR6789: { id: '5', nombre: 'Tutoría de ingreso', materia: null, profesor: 'Prof. Ruiz', estadoMembresia: 'PENDING' },
   };
 
   // Equivale a GET /groups
@@ -139,17 +142,31 @@ export class GruposService {
   private unirseConDatosDePrueba(codigo: string): Observable<Grupo> {
     const grupoEncontrado = this.codigosValidos[codigo];
 
-    // Código inexistente: el backend real devolvería 404
+    // Mismos códigos y mensajes que devuelve el backend en POST /groups/join
     if (!grupoEncontrado) {
-      return throwError(() => new HttpErrorResponse({ status: 404 })).pipe(delay(500));
+      return this.errorDePrueba(404, 'El código no existe o el grupo no está activo');
     }
 
-    // Grupo que el alumno ya tiene: el backend real devolvería 409
-    if (this.grupos.some((grupo) => grupo.id === grupoEncontrado.id)) {
-      return throwError(() => new HttpErrorResponse({ status: 409 })).pipe(delay(500));
+    const grupoQueYaTiene = this.grupos.find((grupo) => grupo.id === grupoEncontrado.id);
+
+    if (grupoQueYaTiene?.estadoMembresia === 'ACTIVE') {
+      return this.errorDePrueba(409, 'Ya sos miembro de este grupo');
     }
 
+    if (grupoQueYaTiene?.estadoMembresia === 'PENDING') {
+      return this.errorDePrueba(409, 'Ya enviaste una solicitud para este grupo');
+    }
+
+    // Si fue rechazado, el backend deja volver a pedir: la solicitud vuelve a PENDING
+    this.grupos = this.grupos.filter((grupo) => grupo.id !== grupoEncontrado.id);
     this.grupos.push(grupoEncontrado);
     return of(grupoEncontrado).pipe(delay(500));
+  }
+
+  // delay() no demora los errores, por eso se usa timer()
+  private errorDePrueba(estado: number, mensaje: string): Observable<never> {
+    return timer(500).pipe(
+      switchMap(() => throwError(() => new HttpErrorResponse({ status: estado, error: { message: mensaje } }))),
+    );
   }
 }
