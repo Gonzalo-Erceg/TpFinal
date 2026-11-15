@@ -10,5 +10,6 @@ router.use(authorize('TEACHER'));
 
 router.post('/', (req, res) => controller.create(req, res));
 router.get('/', (req, res) => controller.list(req, res));
+router.put('/:id', (req,res) => controller.update(req,res));
 
 module.exports = router;

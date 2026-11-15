@@ -29,6 +29,21 @@ class ExamsController {
             });
         }
     }
+
+    // PUT /exams/:id → edita un examen en borrador
+    async update(req, res) {
+        try {
+            const exam = await examsService.update(req.params.id, req.body, req.user);
+            res.status(200).json(exam);
+        } catch (error) {
+            console.error('ERROR EN EXAMS:', error);
+            res.status(error.statusCode || 500).json({
+                message: error.statusCode
+                    ? error.message
+                    : 'Error interno del servidor'
+            });
+        }
+    }
 }
 
 module.exports = ExamsController;
