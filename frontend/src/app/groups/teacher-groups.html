@@ -57,7 +57,7 @@
                         <th>Email</th>
                         <th>Estado</th>
                         <th>Fecha de solicitud</th>
-                        <th>Acciones</th>
+                        <th>Acciones</th>F
                     </tr>
                 </thead>
                 <tbody>
@@ -72,12 +72,12 @@
                         <td>{{ miembro.fechaSolicitud | date: 'dd/MM/yyyy HH:mm' }}</td>
                         <td>
                             @if (miembro.estado === 'PENDING') {
-                            <button type="button" boton-secundario boton-chico
+                            <button type="button" class="boton-secundario boton-chico"
                                 (click)="cambiarEstado(miembro, 'ACTIVE')">Aprobar</button>
-                            <button type="button" boton-secundario boton-chico
+                            <button type="button" class="boton-secundario boton-chico"
                                 (click)="cambiarEstado(miembro, 'REJECTED')">Rechazar</button>
                             } @else if (miembro.estado === 'ACTIVE') {
-                            <button type="button" boton-secundario boton-chico
+                            <button type="button" class="boton-secundario boton-chico"
                                 (click)="cambiarEstado(miembro, 'REMOVED')">Quitar</button>
                             } @else {
                             <span>—</span>
