@@ -1,1 +1,41 @@
-<p>question-bank works!</p>
+<main class="pagina">
+    <header class="encabezado">
+        <h1 class="titulo">Banco de preguntas</h1>
+    </header>
+
+    @if (cargando()) {
+    <p class="aviso">Cargando preguntas...</p>
+    } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    } @else if (preguntas().length === 0) {
+    <div class="vacio">
+        <strong>Todavía no tenés preguntas</strong>
+        Creá tu primera pregunta para empezar a armar exámenes.
+    </div>
+    } @else {
+    <div class="tabla-contenedor">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Tipo</th>
+                    <th>Enunciado</th>
+                    <th>Revisión</th>
+                    <th>Opciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (pregunta of preguntas(); track pregunta.id) {
+                <tr>
+                    <td>{{ pregunta.titulo }}</td>
+                    <td><span class="chip">{{ etiquetasTipo[pregunta.tipo] }}</span></td>
+                    <td>{{ pregunta.enunciado }}</td>
+                    <td>{{ pregunta.numeroRevision }}</td>
+                    <td>{{ pregunta.opciones.length }}</td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+</main>
