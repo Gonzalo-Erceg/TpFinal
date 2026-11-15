@@ -10,6 +10,7 @@ const QUESTION_TYPES = [
 ];
 // La base de datos contiene otros tipos para un futuro,
 // pero actualmente la aplicación solo usa estos cuatro.
+
 class QuestionsService {
 
     async create(data, user) {
