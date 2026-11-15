@@ -1,22 +1,19 @@
 <main class="pagina">
     <header class="encabezado">
-        <h1 class="titulo">Nueva pregunta</h1>
+        <h1 class="titulo">{{ idEditando() ? 'Editar pregunta' : 'Nueva pregunta' }}</h1>
     </header>
 
     <section class="formulario">
-        <!-- Título -->
         <label class="campo">
             <span>Título</span>
             <input type="text" [formControl]="titulo" />
         </label>
 
-        <!-- Enunciado -->
         <label class="campo">
             <span>Enunciado</span>
             <textarea rows="3" [formControl]="enunciado"></textarea>
         </label>
 
-        <!-- Selector de tipo (mismo estilo que el filtro del banco) -->
         <div class="filtros">
             @for (opcionTipo of tiposDisponibles; track opcionTipo) {
             <button type="button" class="filtro" [class.seleccionado]="tipo() === opcionTipo"
@@ -26,7 +23,6 @@
             }
         </div>
 
-        <!-- Parte dinámica: cambia según el tipo -->
         @switch (tipo()) {
         @case ('TRUE_FALSE') {
         <div class="campo">
@@ -69,8 +65,7 @@
                     (input)="cambiarContenido(i, campoOpcion.value)" />
 
                 <input #campoCredito type="number" class="credito" step="0.25" min="-1" max="1"
-                    [value]="opcion.fraccionCredito"
-                    (input)="cambiarCredito(i, +campoCredito.value)" />
+                    [value]="opcion.fraccionCredito" (input)="cambiarCredito(i, +campoCredito.value)" />
 
                 <button type="button" class="boton-quitar" [disabled]="opciones().length <= 2"
                     (click)="quitarOpcion(i)">Quitar</button>
@@ -107,7 +102,6 @@
 
         }
 
-        <!-- Botones -->
         @if (mensajeError()) {
         <p class="error">{{ mensajeError() }}</p>
         }

@@ -14,7 +14,8 @@ export const routes: Routes = [
   { path: 'registro', component: Registro },
   { path: 'grupos', component: ListaGrupos },
   { path: 'examen', component: PantallaExamen },
-  { path: 'profesor', component: GruposProfesor},
+  { path: 'profesor', component: GruposProfesor },
   { path: 'preguntas', component: BancoPreguntas },
   { path: 'preguntas/nueva', component: FormularioPregunta },
+  { path: 'preguntas/:id/editar', component: FormularioPregunta },
 ];

@@ -56,6 +56,7 @@
                         <button type="button" class="boton-ver" (click)="alternarDetalle(pregunta)">
                             {{ preguntaAbierta() === pregunta.id ? 'Ocultar' : 'Ver' }}
                         </button>
+                        <a class="boton-ver" [routerLink]="['/preguntas', pregunta.id, 'editar']">Editar</a>
                         <button type="button" class="boton-eliminar" (click)="eliminar(pregunta)">
                             Eliminar
                         </button>
@@ -75,6 +76,10 @@
                             </li>
                             }
                         </ul>
+                        @if (pregunta.tipo === 'SHORT_TEXT') {
+                        <p>Respuestas aceptadas: {{ pregunta.respuestasAceptadas.join(', ') }}</p>
+                        <p>{{ pregunta.distingueMayusculas ? 'Distingue mayúsculas' : 'No distingue mayúsculas' }}</p>
+                        }
                     </td>
                 </tr>
                 }

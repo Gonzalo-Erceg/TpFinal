@@ -58,7 +58,7 @@ export class BancoPreguntas implements OnInit {
   }
 
   eliminar(pregunta: Pregunta): void {
-    if (!confirm(`¿Seguro que querés borrar "${pregunta.titulo ?? pregunta.enunciado}"?`)){
+    if (!confirm(`¿Seguro que querés borrar "${pregunta.titulo ?? pregunta.enunciado}"?`)) {
       return;
     }
     this.errorAccion.set(null);

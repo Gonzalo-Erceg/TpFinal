@@ -1,8 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PreguntasService } from './questions.service';
-import { TipoPregunta, DatosPregunta, OpcionNueva } from './question.model';
+import { TipoPregunta, DatosPregunta, OpcionNueva, Pregunta } from './question.model';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink],
@@ -10,9 +10,10 @@ import { TipoPregunta, DatosPregunta, OpcionNueva } from './question.model';
   styleUrl: './question-form.scss',
   templateUrl: './question-form.html',
 })
-export class FormularioPregunta {
+export class FormularioPregunta implements OnInit {
   private preguntasService = inject(PreguntasService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   titulo = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(200)] });
   enunciado = new FormControl('', { nonNullable: true, validators: [Validators.required] });
@@ -32,7 +33,7 @@ export class FormularioPregunta {
   distingueMayusculas = signal(false);
   guardando = signal(false);
   mensajeError = signal<string | null>(null);
-
+  idEditando = signal<string | null>(null);
 
   tiposDisponibles: TipoPregunta[] = ['TRUE_FALSE', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'SHORT_TEXT'];
 
@@ -47,8 +48,66 @@ export class FormularioPregunta {
     FILE_UPLOAD: 'Subir archivo',
   };
 
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      return;
+    }
+
+    this.idEditando.set(id);
+
+    this.preguntasService.obtenerPreguntas().subscribe({
+      next: (lista) => {
+        const pregunta = lista.find((p) => p.id === id);
+        if (!pregunta) {
+          this.mensajeError.set('No se encontró la pregunta.');
+          return;
+        }
+        this.cargarPregunta(pregunta);
+      },
+      error: () => {
+        this.mensajeError.set('No se pudo cargar la pregunta.');
+      },
+    });
+  }
+
+  private cargarPregunta(pregunta: Pregunta): void {
+    this.titulo.setValue(pregunta.titulo ?? '');
+    this.enunciado.setValue(pregunta.enunciado);
+    this.tipo.set(pregunta.tipo);
+
+    if (pregunta.tipo === 'TRUE_FALSE') {
+      const verdadero = pregunta.opciones.find((o) => o.contenido.toLowerCase() === 'verdadero');
+      this.verdaderoEsCorrecta.set(verdadero?.fraccionCredito === 1);
+    }
+
+    if (pregunta.tipo === 'SINGLE_CHOICE' || pregunta.tipo === 'MULTIPLE_CHOICE') {
+      this.opciones.set(
+        pregunta.opciones.map((o) => ({ contenido: o.contenido, fraccionCredito: o.fraccionCredito }))
+      );
+    }
+
+    if (pregunta.tipo === 'SHORT_TEXT') {
+      this.respuestas.set(pregunta.respuestasAceptadas.length ? pregunta.respuestasAceptadas : ['']);
+      this.distingueMayusculas.set(pregunta.distingueMayusculas);
+    }
+  }
+
   elegirTipo(tipo: TipoPregunta): void {
     this.tipo.set(tipo);
+
+    const opcionesVacias = this.opciones().every((opcion) => !opcion.contenido.trim());
+    if (!opcionesVacias) {
+      return;
+    }
+
+    if (tipo === 'MULTIPLE_CHOICE') {
+      this.opciones.set(this.opciones().map((opcion) => ({ ...opcion, fraccionCredito: 0 })));
+    }
+
+    if (tipo === 'SINGLE_CHOICE') {
+      this.marcarCorrecta(0);
+    }
   }
 
   agregarOpcion(): void {
@@ -140,7 +199,12 @@ export class FormularioPregunta {
     this.guardando.set(true);
     this.mensajeError.set(null);
 
-    this.preguntasService.crearPregunta(datos).subscribe({
+    const id = this.idEditando();
+    const pedido = id
+      ? this.preguntasService.editarPregunta(id, datos)
+      : this.preguntasService.crearPregunta(datos);
+
+    pedido.subscribe({
       next: () => {
         this.router.navigate(['/preguntas']);
       },

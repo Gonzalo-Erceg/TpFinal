@@ -20,6 +20,8 @@ interface PreguntaApi {
     number: number;
     type: TipoPregunta;
     statement: string;
+    contentJson: { acceptedAnswers?: string[] } | null;
+    gradingConfigJson: { caseSensitive?: boolean } | null;
     options: OpcionPreguntaApi[];
   };
 }
@@ -28,7 +30,6 @@ interface PreguntaApi {
 export class PreguntasService {
   private http = inject(HttpClient);
 
-  // Equivale a GET /questions
   obtenerPreguntas(tipo?: TipoPregunta): Observable<Pregunta[]> {
     const params: Record<string, string> = tipo ? { type: tipo } : {};
     return this.http
@@ -45,6 +46,10 @@ export class PreguntasService {
     return this.http.post('/questions', this.aBodyApi(datos));
   }
 
+  editarPregunta(id: string, datos: DatosPregunta): Observable<unknown> {
+    return this.http.put(`/questions/${id}`, this.aBodyApi(datos));
+  }
+
   private aBodyApi(datos: DatosPregunta): Record<string, unknown> {
     const body: Record<string, unknown> = {
       title: datos.titulo,
@@ -54,7 +59,7 @@ export class PreguntasService {
 
     if (datos.tipo === 'SHORT_TEXT') {
       body['contentJson'] = { acceptedAnswers: datos.respuestasAceptadas };
-      body['gradingConfigJson'] = { caseSensitive: datos.distingueMayusculas};
+      body['gradingConfigJson'] = { caseSensitive: datos.distingueMayusculas };
     } else {
       body['options'] = datos.opciones.map((opcion) => ({
         content: opcion.contenido,
@@ -74,7 +79,7 @@ export class PreguntasService {
     };
   }
 
-  // Traduce una pregunta del backend al modelo del front, "aplanando" la revisión
+  // Traduce una pregunta del backend al modelo del front
   private aPregunta(preguntaApi: PreguntaApi): Pregunta {
     return {
       id: preguntaApi.id,
@@ -84,6 +89,8 @@ export class PreguntasService {
       tipo: preguntaApi.revision.type,
       enunciado: preguntaApi.revision.statement,
       opciones: preguntaApi.revision.options.map((opcionApi) => this.aOpcion(opcionApi)),
+      respuestasAceptadas: preguntaApi.revision.contentJson?.acceptedAnswers ?? [],
+      distingueMayusculas: preguntaApi.revision.gradingConfigJson?.caseSensitive ?? false,
     };
   }
 }
