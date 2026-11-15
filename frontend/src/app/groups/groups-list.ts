@@ -146,7 +146,8 @@ export class ListaGrupos implements OnInit {
 
   // Se ejecuta cuando el diálogo avisa que la solicitud se envió bien
   alEnviarSolicitud(grupo: Grupo): void {
-    this.grupos.update((lista) => [...lista, grupo]);
+    // Si el grupo ya estaba (por ejemplo, rechazado), se reemplaza para no duplicar la tarjeta
+    this.grupos.update((lista) => [...lista.filter((g) => g.id !== grupo.id), grupo]);
     this.mostrarDialogo.set(false);
     this.mensajeExito.set(`Solicitud enviada a "${grupo.materia ?? grupo.nombre}". Queda pendiente hasta que el docente la apruebe.`);
   }

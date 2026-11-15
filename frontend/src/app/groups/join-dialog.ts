@@ -51,6 +51,13 @@ export class DialogoUnirse {
   }
 
   private mensajeParaError(error: HttpErrorResponse): string {
+    // En los 4xx el backend explica el motivo en { message }; en los 5xx manda un texto genérico
+    const mensajeDelBackend = error.error?.message;
+    if (mensajeDelBackend && error.status >= 400 && error.status < 500) {
+      return mensajeDelBackend;
+    }
+
+    // Por si el backend no manda mensaje
     switch (error.status) {
       case 400:
         return 'El código no tiene un formato válido.';
