@@ -16,6 +16,7 @@ export class BancoPreguntas implements OnInit {
   mensajeError = signal<string | null>(null);
   errorAccion = signal<string | null>(null);
   filtroTipo = signal<TipoPregunta | null>(null);
+  preguntaAbierta = signal<string | null>(null);
 
   etiquetasTipo: Record<TipoPregunta, string> = {
     SINGLE_CHOICE: 'Opción única',
@@ -56,7 +57,10 @@ export class BancoPreguntas implements OnInit {
   }
 
   eliminar(pregunta: Pregunta): void {
-    this.errorAccion.set(null);  
+    if (!confirm(`¿Seguro que querés borrar "${pregunta.titulo ?? pregunta.enunciado}"?`)){
+      return;
+    }
+    this.errorAccion.set(null);
 
     this.preguntasService.eliminarPregunta(pregunta.id).subscribe({
       next: () => {
@@ -67,6 +71,14 @@ export class BancoPreguntas implements OnInit {
         this.errorAccion.set('No se pudo eliminar la pregunta. Intentá de nuevo.');
       },
     });
+  }
+
+  alternarDetalle(pregunta: Pregunta): void {
+    if (this.preguntaAbierta() === pregunta.id) {
+      this.preguntaAbierta.set(null);
+    } else {
+      this.preguntaAbierta.set(pregunta.id);
+    }
   }
 
 }

@@ -173,7 +173,6 @@
     }
 }
 
-// Filtros (adaptado de groups-list.scss, sin los colores por estado)
 .filtros {
   display: flex;
   flex-wrap: wrap;
@@ -227,4 +226,50 @@
     background: var(--error-fondo);
     color: var(--error-texto);
   }
+}
+
+.boton-ver {
+  margin-right: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--muted);
+  }
+}
+
+.detalle td {
+  background: var(--bg);
+}
+
+.detalle-enunciado {
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.detalle-opciones {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+
+  .correcta {
+    color: var(--ok-texto);
+    font-weight: 700;
+  }
+}
+
+.marca {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ok-fondo);
+  font-size: 12px;
 }

@@ -52,11 +52,31 @@
                     <td>{{ pregunta.numeroRevision }}</td>
                     <td>{{ pregunta.opciones.length }}</td>
                     <td>
+                        <button type="button" class="boton-ver" (click)="alternarDetalle(pregunta)">
+                            {{ preguntaAbierta() === pregunta.id ? 'Ocultar' : 'Ver' }}
+                        </button>
                         <button type="button" class="boton-eliminar" (click)="eliminar(pregunta)">
                             Eliminar
                         </button>
                     </td>
                 </tr>
+                @if (preguntaAbierta() === pregunta.id) {
+                <tr class="detalle">
+                    <td colspan="6">
+                        <p class="detalle-enunciado">{{ pregunta.enunciado }}</p>
+                        <ul class="detalle-opciones">
+                            @for (opcion of pregunta.opciones; track opcion.id) {
+                            <li [class.correcta]="opcion.fraccionCredito > 0">
+                                {{ opcion.contenido }}
+                                @if (opcion.fraccionCredito > 0) {
+                                <span class="marca">✓ Correcta</span>
+                                }
+                            </li>
+                            }
+                        </ul>
+                    </td>
+                </tr>
+                }
                 }
             </tbody>
         </table>
