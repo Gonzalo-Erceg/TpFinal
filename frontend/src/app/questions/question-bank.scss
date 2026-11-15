@@ -145,7 +145,6 @@
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: 20px;
-    ;
     overflow-x: auto;
 }
 
@@ -172,4 +171,60 @@
     tbody tr:last-child td {
         border-bottom: 0;
     }
+}
+
+// Filtros (adaptado de groups-list.scss, sin los colores por estado)
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+
+  &:hover {
+    border-color: var(--muted);
+  }
+
+  &.seleccionado {
+    background: var(--boton-fondo);
+    border-color: var(--boton-fondo);
+    color: var(--boton-texto);
+  }
+}
+
+.filtro:focus-visible {
+  outline: 3px solid #a58bdc;
+  outline-offset: 3px;
+}
+
+.boton-eliminar {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--error-acento);
+    background: var(--error-fondo);
+    color: var(--error-texto);
+  }
 }

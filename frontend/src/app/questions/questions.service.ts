@@ -30,10 +30,16 @@ export class PreguntasService {
   private http = inject(HttpClient);
 
   // Equivale a GET /questions
-  obtenerPreguntas(): Observable<Pregunta[]> {
+  obtenerPreguntas(tipo?: TipoPregunta): Observable<Pregunta[]> {
+    const params: Record<string, string> = tipo ? { type: tipo } : {};
     return this.http
-      .get<PreguntaApi[]>('/questions')
+      .get<PreguntaApi[]>('/questions', { params })
       .pipe(map((lista) => lista.map((preguntaApi) => this.aPregunta(preguntaApi))));
+
+  }
+
+  eliminarPregunta(id: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`/questions/${id}`);
   }
 
   // Traduce una opción del backend (inglés) al modelo del front (español)

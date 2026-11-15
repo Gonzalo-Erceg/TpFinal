@@ -2,6 +2,20 @@
     <header class="encabezado">
         <h1 class="titulo">Banco de preguntas</h1>
     </header>
+    <div class="filtros">
+        <button type="button" class="filtro" [class.seleccionado]="filtroTipo() === null" (click)="elegirFiltro(null)">
+            Todos
+        </button>
+
+        @for (tipo of tiposFiltro; track tipo) {
+        <button type="button" class="filtro" [class.seleccionado]="filtroTipo() === tipo" (click)="elegirFiltro(tipo)">
+            {{ etiquetasTipo[tipo] }}
+        </button>
+        }
+    </div>
+    @if (errorAccion()) {
+    <p class="error">{{ errorAccion() }}</p>
+    }
 
     @if (cargando()) {
     <p class="aviso">Cargando preguntas...</p>
@@ -9,8 +23,12 @@
     <p class="error">{{ mensajeError() }}</p>
     } @else if (preguntas().length === 0) {
     <div class="vacio">
+        @if (filtroTipo()) {
+        <strong>No tenés preguntas de este tipo</strong>
+        } @else {
         <strong>Todavía no tenés preguntas</strong>
         Creá tu primera pregunta para empezar a armar exámenes.
+        }
     </div>
     } @else {
     <div class="tabla-contenedor">
@@ -22,6 +40,7 @@
                     <th>Enunciado</th>
                     <th>Revisión</th>
                     <th>Opciones</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,6 +51,11 @@
                     <td>{{ pregunta.enunciado }}</td>
                     <td>{{ pregunta.numeroRevision }}</td>
                     <td>{{ pregunta.opciones.length }}</td>
+                    <td>
+                        <button type="button" class="boton-eliminar" (click)="eliminar(pregunta)">
+                            Eliminar
+                        </button>
+                    </td>
                 </tr>
                 }
             </tbody>
