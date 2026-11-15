@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { delay, map } from 'rxjs/operators';
-import { EstadoMembresia, Grupo } from './group.model';
+import { EstadoMembresia, GrupoDelProfesor, Grupo, Alumno, EstadoAlumno } from './group.model';
+
 
 // Mientras el backend no tenga los endpoints, se usan datos de prueba.
 // Cuando existan GET /groups y POST /groups/join, cambiar esto a false.
@@ -15,6 +16,24 @@ interface GrupoApi {
   subject: string;
   teacher: string;
   membershipStatus: EstadoMembresia;
+}
+
+// Forma en que el backend devuelve un grupo al profesor (campos en inglés)
+interface GrupoDelProfesorApi {
+  id: string;
+  name: string;
+  subject: string | null;
+  accessCode: string;
+}
+
+// Forma en que el backend devuelve un miembro del grupo (campos en inglés)
+interface AlumnoApi {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: EstadoAlumno;
+  requestedAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -56,6 +75,34 @@ export class GruposService {
       .pipe(map((grupoApi) => this.aGrupo(grupoApi)));
   }
 
+  // Equivale a GET /groups (vista del profesor)
+  obtenerGruposProfesor(): Observable<GrupoDelProfesor[]> {
+    return this.http
+      .get<GrupoDelProfesorApi[]>('/groups')
+      .pipe(map((lista) => lista.map((grupoApi) => this.aGrupoDelProfesor(grupoApi))));
+  }
+
+  // Equivale a POST /groups (vista del profesor)
+  crearGrupo(nombre: string): Observable<GrupoDelProfesor> {
+    return this.http
+      .post<GrupoDelProfesorApi>('/groups', { name: nombre })
+      .pipe(map((grupoApi) => this.aGrupoDelProfesor(grupoApi)));
+  }
+
+  // Equivale a GET /groups/:id/members
+  obtenerMiembros(grupoId: string): Observable<Alumno[]> {
+    return this.http
+      .get<AlumnoApi[]>(`/groups/${grupoId}/members`)
+      .pipe(map((lista) => lista.map((alumnoApi) => this.aAlumno(alumnoApi))));
+  }
+
+  // Equivale a PATCH /groups/:id/members/:userId
+  cambiarEstadoMiembro(grupoId: string, alumnoId: string, estado: EstadoAlumno): Observable<Alumno> {
+    return this.http
+      .patch<AlumnoApi>(`/groups/${grupoId}/members/${alumnoId}`, { status: estado })
+      .pipe(map((alumnoApi) => this.aAlumno(alumnoApi)));
+  }
+
   // Traduce el grupo del backend (inglés) al modelo del front (español)
   private aGrupo(grupoApi: GrupoApi): Grupo {
     return {
@@ -64,6 +111,28 @@ export class GruposService {
       materia: grupoApi.subject,
       profesor: grupoApi.teacher,
       estadoMembresia: grupoApi.membershipStatus,
+    };
+  }
+
+  // Traduce el grupo del profesor del backend (inglés) al modelo del front (español)
+  private aGrupoDelProfesor(grupoApi: GrupoDelProfesorApi): GrupoDelProfesor {
+    return {
+      id: grupoApi.id,
+      nombre: grupoApi.name,
+      materia: grupoApi.subject,
+      codigoDeAcceso: grupoApi.accessCode,
+    };
+  }
+
+  // Traduce un miembro del grupo del backend (inglés) al modelo del front (español)
+  private aAlumno(alumnoApi: AlumnoApi): Alumno {
+    return {
+      id: alumnoApi.userId,
+      nombre: alumnoApi.firstName,
+      apellido: alumnoApi.lastName,
+      email: alumnoApi.email,
+      estado: alumnoApi.status,
+      fechaSolicitud: alumnoApi.requestedAt,
     };
   }
 
