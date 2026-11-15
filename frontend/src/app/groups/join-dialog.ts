@@ -13,7 +13,6 @@ import { Grupo } from './group.model';
 export class DialogoUnirse {
   private gruposService = inject(GruposService);
 
-  // Eventos que el diálogo le avisa al componente padre
   solicitudEnviada = output<Grupo>();
   cerrar = output<void>();
 
@@ -30,7 +29,6 @@ export class DialogoUnirse {
     evento.preventDefault();
     this.errorServidor.set(null);
 
-    // Si el código no pasa las validaciones, no se llama a la API
     if (this.codigo.invalid) {
       this.codigo.markAsTouched();
       return;

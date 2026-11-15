@@ -65,7 +65,6 @@ export class BancoPreguntas implements OnInit {
 
     this.preguntasService.eliminarPregunta(pregunta.id).subscribe({
       next: () => {
-        // sacar la pregunta eliminada de la lista
         this.preguntas.set(this.preguntas().filter((p) => p.id !== pregunta.id));
       },
       error: () => {

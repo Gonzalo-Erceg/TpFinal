@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TipoPregunta, OpcionPregunta, Pregunta, DatosPregunta } from './question.model';
 
-// Forma en que el backend devuelve una opción (campos en inglés)
 interface OpcionPreguntaApi {
   id: string;
   content: string;
