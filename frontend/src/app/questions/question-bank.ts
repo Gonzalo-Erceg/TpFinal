@@ -1,9 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { PreguntasService } from './questions.service';
 import { TipoPregunta, Pregunta } from './question.model';
+import { RouterLink } from '@angular/router';
 
 @Component({
-  imports: [],
+  imports: [RouterLink],
   selector: 'app-banco-preguntas',
   styleUrl: './question-bank.scss',
   templateUrl: './question-bank.html',
@@ -57,14 +58,13 @@ export class BancoPreguntas implements OnInit {
   }
 
   eliminar(pregunta: Pregunta): void {
-    if (!confirm(`¿Seguro que querés borrar "${pregunta.titulo ?? pregunta.enunciado}"?`)){
+    if (!confirm(`¿Seguro que querés borrar "${pregunta.titulo ?? pregunta.enunciado}"?`)) {
       return;
     }
     this.errorAccion.set(null);
 
     this.preguntasService.eliminarPregunta(pregunta.id).subscribe({
       next: () => {
-        // sacar la pregunta eliminada de la lista
         this.preguntas.set(this.preguntas().filter((p) => p.id !== pregunta.id));
       },
       error: () => {

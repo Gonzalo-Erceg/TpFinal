@@ -155,7 +155,7 @@
   }
 }
 
-// Encabezado
+
 .encabezado {
   display: flex;
   justify-content: space-between;
@@ -212,7 +212,7 @@
   background: #ffffff26;
 }
 
-// Filtros
+
 .filtros {
   display: flex;
   flex-wrap: wrap;
@@ -235,7 +235,7 @@
   cursor: pointer;
   transition: border-color 0.18s, background 0.18s;
 
-  // Puntito de color del estado (el botón "Todos" no lo tiene)
+
   &[data-estado]::before {
     content: '';
     width: 9px;
@@ -285,7 +285,7 @@
   outline-offset: 3px;
 }
 
-// Tarjetas de grupos
+
 .grupos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -401,22 +401,23 @@
   margin-top: 18px;
 }
 
-.boton-secundario{
-    padding: 12px 20px;
-    border-radius: 12px;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    border: 1px solid var(--border, #e9e6ea);
-    background: var(--white, #fff);
-    color: var(--ink, #242332);
-     &:hover {
+.boton-secundario {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border, #e9e6ea);
+  background: var(--white, #fff);
+  color: var(--ink, #242332);
+
+  &:hover {
     border-color: var(--boton-fondo);
   }
 }
 
-.solicitudes{
+.solicitudes {
   margin-top: 48px;
 }
 
@@ -470,18 +471,19 @@
 .tabla-contenedor {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 20px;;        
-  overflow-x: auto;         
+  border-radius: 20px;
+  ;
+  overflow-x: auto;
 }
 
 .tabla {
-  width: 100%;               
-  border-collapse: collapse; 
+  width: 100%;
+  border-collapse: collapse;
   font-size: 14px;
 
   th,
   td {
-    padding: 14px;            
+    padding: 14px;
     text-align: left;
     border-bottom: 1px solid var(--border);
   }
@@ -490,16 +492,16 @@
     font-size: 12px;
     font-weight: 700;
     color: var(--muted);
-    text-transform: uppercase;  
+    text-transform: uppercase;
     letter-spacing: 0.04em;
   }
 
   tbody tr:last-child td {
-    border-bottom: 0;        
+    border-bottom: 0;
   }
 }
 
 .boton-chico {
-  padding: 7px;              
+  padding: 7px;
   font-size: 13px;
 }

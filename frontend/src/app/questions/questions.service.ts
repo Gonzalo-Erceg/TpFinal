@@ -2,9 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { TipoPregunta, OpcionPregunta, Pregunta } from './question.model';
+import { TipoPregunta, OpcionPregunta, Pregunta, DatosPregunta } from './question.model';
 
-// Forma en que el backend devuelve una opción (campos en inglés)
 interface OpcionPreguntaApi {
   id: string;
   content: string;
@@ -21,6 +20,8 @@ interface PreguntaApi {
     number: number;
     type: TipoPregunta;
     statement: string;
+    contentJson: { acceptedAnswers?: string[] } | null;
+    gradingConfigJson: { caseSensitive?: boolean } | null;
     options: OpcionPreguntaApi[];
   };
 }
@@ -29,7 +30,6 @@ interface PreguntaApi {
 export class PreguntasService {
   private http = inject(HttpClient);
 
-  // Equivale a GET /questions
   obtenerPreguntas(tipo?: TipoPregunta): Observable<Pregunta[]> {
     const params: Record<string, string> = tipo ? { type: tipo } : {};
     return this.http
@@ -42,6 +42,33 @@ export class PreguntasService {
     return this.http.delete<{ message: string }>(`/questions/${id}`);
   }
 
+  crearPregunta(datos: DatosPregunta): Observable<unknown> {
+    return this.http.post('/questions', this.aBodyApi(datos));
+  }
+
+  editarPregunta(id: string, datos: DatosPregunta): Observable<unknown> {
+    return this.http.put(`/questions/${id}`, this.aBodyApi(datos));
+  }
+
+  private aBodyApi(datos: DatosPregunta): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      title: datos.titulo,
+      type: datos.tipo,
+      statement: datos.enunciado,
+    };
+
+    if (datos.tipo === 'SHORT_TEXT') {
+      body['contentJson'] = { acceptedAnswers: datos.respuestasAceptadas };
+      body['gradingConfigJson'] = { caseSensitive: datos.distingueMayusculas };
+    } else {
+      body['options'] = datos.opciones.map((opcion) => ({
+        content: opcion.contenido,
+        creditFraction: opcion.fraccionCredito,
+      }));
+    }
+
+    return body;
+  }
   // Traduce una opción del backend (inglés) al modelo del front (español)
   private aOpcion(opcionApi: OpcionPreguntaApi): OpcionPregunta {
     return {
@@ -52,7 +79,7 @@ export class PreguntasService {
     };
   }
 
-  // Traduce una pregunta del backend al modelo del front, "aplanando" la revisión
+  // Traduce una pregunta del backend al modelo del front
   private aPregunta(preguntaApi: PreguntaApi): Pregunta {
     return {
       id: preguntaApi.id,
@@ -62,6 +89,8 @@ export class PreguntasService {
       tipo: preguntaApi.revision.type,
       enunciado: preguntaApi.revision.statement,
       opciones: preguntaApi.revision.options.map((opcionApi) => this.aOpcion(opcionApi)),
+      respuestasAceptadas: preguntaApi.revision.contentJson?.acceptedAnswers ?? [],
+      distingueMayusculas: preguntaApi.revision.gradingConfigJson?.caseSensitive ?? false,
     };
   }
 }

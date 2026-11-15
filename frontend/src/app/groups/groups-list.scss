@@ -177,7 +177,6 @@
   }
 }
 
-// Encabezado
 .encabezado {
   display: flex;
   justify-content: space-between;
@@ -234,7 +233,6 @@
   background: #ffffff26;
 }
 
-// Filtros
 .filtros {
   display: flex;
   flex-wrap: wrap;
@@ -307,7 +305,6 @@
   outline-offset: 3px;
 }
 
-// Tarjetas de grupos
 .grupos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
