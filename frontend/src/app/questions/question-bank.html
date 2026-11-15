@@ -1,6 +1,7 @@
 <main class="pagina">
     <header class="encabezado">
         <h1 class="titulo">Banco de preguntas</h1>
+        <a class="boton-principal" routerLink="/preguntas/nueva">Nueva pregunta</a>
     </header>
     <div class="filtros">
         <button type="button" class="filtro" [class.seleccionado]="filtroTipo() === null" (click)="elegirFiltro(null)">

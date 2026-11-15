@@ -1,9 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { PreguntasService } from './questions.service';
 import { TipoPregunta, Pregunta } from './question.model';
+import { RouterLink } from '@angular/router';
 
 @Component({
-  imports: [],
+  imports: [RouterLink],
   selector: 'app-banco-preguntas',
   styleUrl: './question-bank.scss',
   templateUrl: './question-bank.html',

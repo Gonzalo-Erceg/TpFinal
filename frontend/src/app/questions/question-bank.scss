@@ -273,3 +273,27 @@
   background: var(--ok-fondo);
   font-size: 12px;
 }
+
+.boton-principal {
+  border: 0;
+  border-radius: 12px;
+  background: var(--boton-fondo);
+  color: var(--boton-texto);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.18s, transform 0.18s;
+
+  &:hover {
+    background: var(--boton-hover);
+    transform: translateY(-1px);
+  }
+}
+

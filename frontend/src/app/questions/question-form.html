@@ -1,0 +1,121 @@
+<main class="pagina">
+    <header class="encabezado">
+        <h1 class="titulo">Nueva pregunta</h1>
+    </header>
+
+    <section class="formulario">
+        <!-- Título -->
+        <label class="campo">
+            <span>Título</span>
+            <input type="text" [formControl]="titulo" />
+        </label>
+
+        <!-- Enunciado -->
+        <label class="campo">
+            <span>Enunciado</span>
+            <textarea rows="3" [formControl]="enunciado"></textarea>
+        </label>
+
+        <!-- Selector de tipo (mismo estilo que el filtro del banco) -->
+        <div class="filtros">
+            @for (opcionTipo of tiposDisponibles; track opcionTipo) {
+            <button type="button" class="filtro" [class.seleccionado]="tipo() === opcionTipo"
+                (click)="elegirTipo(opcionTipo)">
+                {{ etiquetasTipo[opcionTipo] }}
+            </button>
+            }
+        </div>
+
+        <!-- Parte dinámica: cambia según el tipo -->
+        @switch (tipo()) {
+        @case ('TRUE_FALSE') {
+        <div class="campo">
+            <span>Respuesta correcta</span>
+            <div class="filtros">
+                <button type="button" class="filtro" [class.seleccionado]="verdaderoEsCorrecta()"
+                    (click)="verdaderoEsCorrecta.set(true)">Verdadero</button>
+                <button type="button" class="filtro" [class.seleccionado]="!verdaderoEsCorrecta()"
+                    (click)="verdaderoEsCorrecta.set(false)">Falso</button>
+            </div>
+        </div>
+        }
+        @case ('SINGLE_CHOICE') {
+        <div class="campo">
+            <span>Opciones (marcá la correcta)</span>
+
+            @for (opcion of opciones(); track $index; let i = $index) {
+            <div class="opcion">
+                <input #campoOpcion type="text" placeholder="Texto de la opción" [value]="opcion.contenido"
+                    (input)="cambiarContenido(i, campoOpcion.value)" />
+
+                <button type="button" class="filtro" [class.seleccionado]="opcion.fraccionCredito === 1"
+                    (click)="marcarCorrecta(i)">Correcta</button>
+
+                <button type="button" class="boton-quitar" [disabled]="opciones().length <= 2"
+                    (click)="quitarOpcion(i)">Quitar</button>
+            </div>
+            }
+
+            <button type="button" class="boton-secundario" (click)="agregarOpcion()">+ Agregar opción</button>
+        </div>
+        }
+        @case ('MULTIPLE_CHOICE') {
+        <div class="campo">
+            <span>Opciones y crédito (entre -1 y 1; los positivos suman 1)</span>
+
+            @for (opcion of opciones(); track $index; let i = $index) {
+            <div class="opcion">
+                <input #campoOpcion type="text" placeholder="Texto de la opción" [value]="opcion.contenido"
+                    (input)="cambiarContenido(i, campoOpcion.value)" />
+
+                <input #campoCredito type="number" class="credito" step="0.25" min="-1" max="1"
+                    [value]="opcion.fraccionCredito"
+                    (input)="cambiarCredito(i, +campoCredito.value)" />
+
+                <button type="button" class="boton-quitar" [disabled]="opciones().length <= 2"
+                    (click)="quitarOpcion(i)">Quitar</button>
+            </div>
+            }
+
+            <button type="button" class="boton-secundario" (click)="agregarOpcion()">+ Agregar opción</button>
+            <p class="aviso">Suma de créditos positivos: {{ sumaPositivos() }}</p>
+        </div>
+        }
+        @case ('SHORT_TEXT') {
+        <div class="campo">
+            <span>Respuestas aceptadas</span>
+
+            @for (respuesta of respuestas(); track $index; let i = $index) {
+            <div class="opcion respuesta">
+                <input #campoRespuesta type="text" placeholder="Respuesta aceptada" [value]="respuesta"
+                    (input)="cambiarRespuesta(i, campoRespuesta.value)" />
+
+                <button type="button" class="boton-quitar" [disabled]="respuestas().length <= 1"
+                    (click)="quitarRespuesta(i)">Quitar</button>
+            </div>
+            }
+
+            <button type="button" class="boton-secundario" (click)="agregarRespuesta()">+ Agregar respuesta</button>
+        </div>
+
+        <label class="check">
+            <input #campoMayus type="checkbox" [checked]="distingueMayusculas()"
+                (change)="distingueMayusculas.set(campoMayus.checked)" />
+            Distinguir mayúsculas y minúsculas
+        </label>
+        }
+
+        }
+
+        <!-- Botones -->
+        @if (mensajeError()) {
+        <p class="error">{{ mensajeError() }}</p>
+        }
+        <div class="acciones">
+            <a class="boton-secundario" routerLink="/preguntas">Cancelar</a>
+            <button type="button" class="boton-principal" [disabled]="guardando()" (click)="guardar()">
+                {{ guardando() ? 'Guardando...' : 'Guardar' }}
+            </button>
+        </div>
+    </section>
+</main>

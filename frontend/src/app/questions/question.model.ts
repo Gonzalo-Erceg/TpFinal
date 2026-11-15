@@ -16,3 +16,17 @@ export interface Pregunta {
     enunciado: string;
     opciones : OpcionPregunta[];
 }
+
+export interface OpcionNueva {
+  contenido: string;
+  fraccionCredito: number;
+}
+
+export interface DatosPregunta {
+  titulo: string;
+  tipo: TipoPregunta;
+  enunciado: string;
+  opciones: OpcionNueva[];          
+  respuestasAceptadas: string[];    
+  distingueMayusculas: boolean;     
+}

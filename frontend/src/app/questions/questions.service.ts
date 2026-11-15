@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { TipoPregunta, OpcionPregunta, Pregunta } from './question.model';
+import { TipoPregunta, OpcionPregunta, Pregunta, DatosPregunta } from './question.model';
 
 // Forma en que el backend devuelve una opción (campos en inglés)
 interface OpcionPreguntaApi {
@@ -42,6 +42,29 @@ export class PreguntasService {
     return this.http.delete<{ message: string }>(`/questions/${id}`);
   }
 
+  crearPregunta(datos: DatosPregunta): Observable<unknown> {
+    return this.http.post('/questions', this.aBodyApi(datos));
+  }
+
+  private aBodyApi(datos: DatosPregunta): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      title: datos.titulo,
+      type: datos.tipo,
+      statement: datos.enunciado,
+    };
+
+    if (datos.tipo === 'SHORT_TEXT') {
+      body['contentJson'] = { acceptedAnswers: datos.respuestasAceptadas };
+      body['gradingConfigJson'] = { caseSensitive: datos.distingueMayusculas};
+    } else {
+      body['options'] = datos.opciones.map((opcion) => ({
+        content: opcion.contenido,
+        creditFraction: opcion.fraccionCredito,
+      }));
+    }
+
+    return body;
+  }
   // Traduce una opción del backend (inglés) al modelo del front (español)
   private aOpcion(opcionApi: OpcionPreguntaApi): OpcionPregunta {
     return {
