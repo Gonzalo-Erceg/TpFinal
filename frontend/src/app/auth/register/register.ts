@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { AutenticacionService } from '../auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { RolUsuario } from '../auth.model';
 
 // El backend solo exige 8 caracteres; letra y número los pedimos desde el front
@@ -33,7 +33,7 @@ type CampoRegistro = 'nombre' | 'apellido' | 'email' | 'contrasena' | 'confirmac
   styleUrls: ['../login/login.scss', './register.scss'],
 })
 export class Registro {
-  private autenticacion = inject(AutenticacionService);
+  private autenticacion = inject(AuthService);
   private router = inject(Router);
 
   formulario = new FormGroup(
@@ -77,7 +77,13 @@ export class Registro {
     const { nombre, apellido, email, contrasena, rol } = this.formulario.getRawValue();
     this.cargando.set(true);
 
-    this.autenticacion.registrar({ nombre, apellido, email, contrasena, rol }).subscribe({
+    this.autenticacion.register({ 
+      firstName: nombre.trim(), 
+      lastName: apellido.trim(), 
+      email: email.trim().toLowerCase(), 
+      password: contrasena, 
+      role: rol 
+    }).subscribe({
       next: () => {
         this.cargando.set(false);
         this.router.navigate(['/login'], { queryParams: { registrado: 'si' } });

@@ -2,8 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AutenticacionService, RUTAS_POR_ROL } from '../auth.service';
-
+import { AuthService } from '../../core/auth/auth.service';
 @Component({
   selector: 'app-inicio-sesion',
   imports: [ReactiveFormsModule, RouterLink],
@@ -11,7 +10,7 @@ import { AutenticacionService, RUTAS_POR_ROL } from '../auth.service';
   styleUrl: './login.scss',
 })
 export class InicioSesion {
-  private autenticacion = inject(AutenticacionService);
+  private autenticacion = inject(AuthService);
   private router = inject(Router);
 
   private ruta = inject(ActivatedRoute);
@@ -20,7 +19,10 @@ export class InicioSesion {
   registroExitoso = this.ruta.snapshot.queryParamMap.get('registrado') === 'si';
 
   formulario = new FormGroup({
-    email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
+    email: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.email],
+    }),
     contrasena: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
 
@@ -38,10 +40,17 @@ export class InicioSesion {
     const { email, contrasena } = this.formulario.getRawValue();
     this.cargando.set(true);
 
-    this.autenticacion.iniciarSesion(email, contrasena).subscribe({
-      next: (usuario) => {
+    this.autenticacion.login(email, contrasena).subscribe({
+      next: (respuesta) => {
         this.cargando.set(false);
-        this.router.navigateByUrl(RUTAS_POR_ROL[usuario.rol]);
+        
+        const rutasPorRol = {
+          STUDENT: '/grupos',
+          TEACHER: '/profesor',
+        };
+
+        const destino = rutasPorRol[respuesta.user.role];
+        this.router.navigateByUrl(destino);
       },
       error: (error: HttpErrorResponse) => {
         this.cargando.set(false);
