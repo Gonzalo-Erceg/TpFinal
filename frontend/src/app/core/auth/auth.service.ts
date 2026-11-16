@@ -31,7 +31,7 @@ export class AuthService {
 	user = signal<User | null>(null);
 	token = signal<string | null>(null);
 
-	isAuthenticated = computed(() => this.user() !== null);
+	isAuthenticated = computed(() => this.user() !== null && this.token() !== null);
 
 	private isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
@@ -39,18 +39,19 @@ export class AuthService {
 		if (!this.isBrowser) {
 			return;
 		}
+		try{
+			const storedToken = sessionStorage.getItem('token');
+			const storedUser = sessionStorage.getItem('user');
 
-		const storedToken = sessionStorage.getItem('token');
-		const storedUser = sessionStorage.getItem('user');
-
-		if (storedToken && storedUser) {
-			if (this.isTokenExpired(storedToken)) {
-				this.logout();
-				return;
-			}
-
-			this.token.set(storedToken);
+			if (!storedToken || !storedUser || this.isTokenExpired(storedToken)) {
+                this.logout();
+                return;
+            }
 			this.user.set(JSON.parse(storedUser));
+            this.token.set(storedToken);
+
+		} catch {
+			this.logout();
 		}
 	}
 
@@ -58,7 +59,7 @@ export class AuthService {
 		try {
 			const payload = JSON.parse(atob(token.split('.')[1]));
 
-			return payload.exp <= Date.now() / 1000;
+			return typeof payload.exp !== 'number' || payload.exp <= Date.now() / 1000;
 		} catch {
 			return true;
 		}

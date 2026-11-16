@@ -12,7 +12,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 	const authService = inject(AuthService);
 	const token = authService.token();
 
-	if (!token) {
+	const rutaPublica = req.url === '/auth/login' || req.url === '/auth/register';
+
+	const requiereToken = req.url.startsWith('/') && !req.url.startsWith('//') && !rutaPublica;
+
+	if (!token || !requiereToken) {
 		return next(req);
 	}
 
