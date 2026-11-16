@@ -65,6 +65,17 @@ export class AuthService {
 		}
 	}
 
+	hasValidSession(): boolean {
+		const token = this.token();
+		const user = this.user();
+
+		if (!token || !user || this.isTokenExpired(token)) {
+			this.logout();
+			return false;
+		}
+		return true;
+	}
+
 	login(email: string, password: string) {
 		return this.http.post<LoginResponse>('/auth/login', {
 			email,
