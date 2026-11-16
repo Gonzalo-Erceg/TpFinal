@@ -1,0 +1,145 @@
+:host {
+	--primary: #242332;
+	--secundary: #5F5A6C;
+	--boton: #6752B2;
+}
+
+* {
+	box-sizing: border-box;
+	font-family: "Manrope", sans-serif;
+}
+
+.process {
+	width: 100%;
+	padding: 4rem 2rem;
+}
+
+.process-container {
+	margin: 0 auto;
+}
+
+.process-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+
+	gap: 2rem;
+	margin-bottom: 2.5rem;
+}
+
+.process-header h2 {
+	margin: 0;
+
+	max-width: 590px;
+
+	font-size: 48px;
+	font-weight: 800;
+	line-height: 1;
+
+	color: var(--primary);
+}
+
+.process-header p {
+	margin: 0;
+
+	max-width: 380px;
+
+	font-size: 14px;
+	line-height: 1.6;
+
+	color: var(--secundary);
+}
+
+.process-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+
+	gap: 1rem;
+}
+
+.process-card {
+	padding: 1.5rem;
+
+	background: #fff;
+	border: 1px solid #E5E1EA;
+	border-radius: 24px;
+}
+
+.process-top {
+	display: flex;
+	align-items: center;
+
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.process-number {
+	font-size: 42px;
+	font-weight: 800;
+	line-height: 1;
+
+	color: var(--boton);
+}
+
+.student-number {
+	color: #D59618;
+}
+
+.result-number {
+	color: #2F7D57;
+}
+
+.process-role {
+	padding: 4px 8px;
+
+	border-radius: 999px;
+
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.teacher-role {
+	background: #EEE6FF;
+	color: #6752B2;
+}
+
+.student-role {
+	background: #FFF0C8;
+	color: #8A6200;
+}
+
+.both-role {
+	background: #DFF3E8;
+	color: #2E7D57;
+}
+
+.process-card h3 {
+	margin: 0 0 8px;
+
+	font-size: 22px;
+	font-weight: 800;
+
+	color: var(--primary);
+}
+
+.process-card > p {
+	margin: 0;
+
+	min-height: 68px;
+
+	font-size: 13px;
+	line-height: 1.6;
+
+	color: var(--secundary);
+}
+
+.process-visual {
+	margin-top: 1.5rem;
+}
+
+.process-visual img {
+	display: block;
+
+	width: 100%;
+	height: auto;
+}
