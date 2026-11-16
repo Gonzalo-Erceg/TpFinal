@@ -2,5 +2,17 @@
   "/auth": {
     "target": "http://localhost:3000/",
     "secure": false
+  },
+  "/groups": {
+    "target": "http://localhost:3000/",
+    "secure": false
+  },
+  "/questions":{
+    "target": "http://localhost:3000/",
+    "secure": false
   }
+
 }
+
+
+  

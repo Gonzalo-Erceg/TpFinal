@@ -1,0 +1,237 @@
+const sql = require('mssql');
+const { pool } = require('../config/database');
+
+class QuestionsRepository {
+
+    async create(data, teacherId) {
+        const db = await pool;
+        const transaction = new sql.Transaction(db);
+
+        await transaction.begin();
+
+        try {
+            const questionResult = await new sql.Request(transaction)
+                .input('ownerId', sql.UniqueIdentifier, teacherId)
+                .input('title', sql.NVarChar(200), data.title)
+                .query(`
+					INSERT INTO QuestionBankItems (OwnerId, Title)
+					OUTPUT INSERTED.Id
+					VALUES (@ownerId, @title)
+				`);
+
+            const questionId = questionResult.recordset[0].Id;
+
+            const revisionResult = await new sql.Request(transaction)
+                .input('questionId', sql.UniqueIdentifier, questionId)
+                .input('questionType', sql.NVarChar(40), data.type)
+                .input('statement', sql.NVarChar(sql.MAX), data.statement)
+                .input('contentJson', sql.NVarChar(sql.MAX), data.contentJson ? JSON.stringify(data.contentJson) : null)
+                .input('gradingConfigJson', sql.NVarChar(sql.MAX), data.gradingConfigJson ? JSON.stringify(data.gradingConfigJson) : null)
+                .query(`
+					INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement, ContentJson, GradingConfigJson)
+					OUTPUT INSERTED.Id
+					VALUES (@questionId, 1, @questionType, @statement, @ContentJson, @GradingConfigJson)`
+                );
+
+            const revisionId = revisionResult.recordset[0].Id;
+
+            if (Array.isArray(data.options)) {
+                for (let i = 0; i < data.options.length; i++) {
+                    const option = data.options[i];
+
+                    await new sql.Request(transaction)
+                        .input('revisionId', sql.UniqueIdentifier, revisionId)
+                        .input('content', sql.NVarChar(sql.MAX), option.content)
+                        .input('position', sql.Int, i + 1)
+                        .input('creditFraction', sql.Decimal(8, 4), option.creditFraction)
+                        .query(`
+							INSERT INTO QuestionOptions ( QuestionRevisionId, Content, Position, CreditFraction)
+							VALUES (@revisionId, @content, @position, @creditFraction)`
+                        );
+                }
+            }
+
+            await transaction.commit();
+
+            return {
+                id: questionId,
+                revisionId
+            };
+
+        } catch (error) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+            }
+
+            throw error;
+        }
+    }
+
+
+    async findByTeacher(teacherId, type = null) {
+        const db = await pool;
+
+        const request = db.request()
+            .input('teacherId', sql.UniqueIdentifier, teacherId);
+
+        let typeFilter = '';
+
+        if (type) {
+            request.input('type', sql.NVarChar(40), type);
+            typeFilter = 'AND qr.QuestionType = @type';
+        }
+
+        const result = await request.query(`
+			SELECT
+				q.Id,
+				q.Title,
+
+				qr.Id AS RevisionId,
+				qr.RevisionNumber,
+				qr.QuestionType,
+				qr.Statement,
+				qr.ContentJson,
+				qr.GradingConfigJson,
+
+				qo.Id AS OptionId,
+				qo.Content AS OptionContent,
+				qo.Position,
+				qo.CreditFraction
+
+			FROM QuestionBankItems q
+
+			INNER JOIN QuestionRevisions qr
+				ON qr.QuestionId = q.Id
+
+			LEFT JOIN QuestionOptions qo
+				ON qo.QuestionRevisionId = qr.Id
+
+			WHERE q.OwnerId = @teacherId
+			  AND q.IsActive = 1
+			  AND qr.RevisionNumber = (
+				  SELECT MAX(qr2.RevisionNumber)
+				  FROM QuestionRevisions qr2
+				  WHERE qr2.QuestionId = q.Id
+			  )
+			  ${typeFilter}
+
+			ORDER BY q.Title, qo.Position;
+		`);
+
+        return result.recordset;
+    }
+    async delete(questionId, teacherId) {
+        const db = await pool;
+
+        const request = db.request()
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .input('questionId', sql.UniqueIdentifier, questionId)
+        const result = await request.query(
+            `UPDATE QuestionBankItems
+            SET IsActive = 0
+            WHERE Id = @questionId
+            AND OwnerId = @teacherId
+            AND IsActive = 1`
+        )
+        return result.rowsAffected[0];
+    }
+    async findByIdAndTeacher(questionId, teacherId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('questionId', sql.UniqueIdentifier, questionId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+			SELECT Id, Title
+			FROM QuestionBankItems
+			WHERE Id = @questionId
+			  AND OwnerId = @teacherId
+			  AND IsActive = 1
+		`);
+
+        return result.recordset[0];
+    }
+
+    async update(questionId, data) {
+        const db = await pool;
+        const transaction = new sql.Transaction(db);
+
+        await transaction.begin();
+
+        try {
+            const revisionResult = await new sql.Request(transaction)
+                .input('questionId', sql.UniqueIdentifier, questionId)
+                .query(`
+				SELECT MAX(RevisionNumber) AS MaxRevision
+				FROM QuestionRevisions
+				WHERE QuestionId = @questionId
+			`);
+
+            const maxRevision = revisionResult.recordset[0].MaxRevision;
+            const newRevisionNumber = maxRevision + 1;
+
+            await new sql.Request(transaction)
+                .input('questionId', sql.UniqueIdentifier, questionId)
+                .input('title', sql.NVarChar(200), data.title)
+                .query(`
+				UPDATE QuestionBankItems
+				SET Title = @title
+				WHERE Id = @questionId
+			`);
+
+            const newRevisionResult = await new sql.Request(transaction)
+                .input('questionId', sql.UniqueIdentifier, questionId)
+                .input('revisionNumber', sql.Int, newRevisionNumber)
+                .input('questionType', sql.NVarChar(40), data.type)
+                .input('statement', sql.NVarChar(sql.MAX), data.statement)
+                .input('contentJson', sql.NVarChar(sql.MAX), data.contentJson ? JSON.stringify(data.contentJson) : null)
+                .input('gradingConfigJson', sql.NVarChar(sql.MAX), data.gradingConfigJson ? JSON.stringify(data.gradingConfigJson) : null)
+                .query(`
+				INSERT INTO QuestionRevisions (QuestionId, RevisionNumber, QuestionType, Statement, ContentJson, GradingConfigJson)
+				OUTPUT INSERTED.Id
+				VALUES (@questionId, @revisionNumber, @questionType, @statement, @contentJson, @gradingConfigJson)
+			    `);
+
+            const newRevisionId = newRevisionResult.recordset[0].Id;
+
+            if (Array.isArray(data.options)) {
+                for (let i = 0; i < data.options.length; i++) {
+                    const option = data.options[i];
+
+                    await new sql.Request(transaction)
+                        .input('revisionId', sql.UniqueIdentifier, newRevisionId)
+                        .input('content', sql.NVarChar(sql.MAX), option.content)
+                        .input('position', sql.Int, i + 1)
+                        .input(
+                            'creditFraction',
+                            sql.Decimal(8, 4),
+                            option.creditFraction
+                        )
+                        .query(`
+						INSERT INTO QuestionOptions (QuestionRevisionId, Content, Position, CreditFraction)
+						VALUES (@revisionId, @content, @position, @creditFraction)`
+                        );
+                }
+            }
+
+            await transaction.commit();
+
+            return {
+                id: questionId,
+                revisionId: newRevisionId,
+                revisionNumber: newRevisionNumber
+            };
+
+        } catch (error) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+            }
+
+            throw error;
+        }
+    }
+}
+
+module.exports = QuestionsRepository;

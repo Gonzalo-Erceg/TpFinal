@@ -1,0 +1,91 @@
+<main class="pagina">
+    <header class="encabezado">
+        <h1 class="titulo">Banco de preguntas</h1>
+        <a class="boton-principal" routerLink="/preguntas/nueva">Nueva pregunta</a>
+    </header>
+    <div class="filtros">
+        <button type="button" class="filtro" [class.seleccionado]="filtroTipo() === null" (click)="elegirFiltro(null)">
+            Todos
+        </button>
+
+        @for (tipo of tiposFiltro; track tipo) {
+        <button type="button" class="filtro" [class.seleccionado]="filtroTipo() === tipo" (click)="elegirFiltro(tipo)">
+            {{ etiquetasTipo[tipo] }}
+        </button>
+        }
+    </div>
+    @if (errorAccion()) {
+    <p class="error">{{ errorAccion() }}</p>
+    }
+
+    @if (cargando()) {
+    <p class="aviso">Cargando preguntas...</p>
+    } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    } @else if (preguntas().length === 0) {
+    <div class="vacio">
+        @if (filtroTipo()) {
+        <strong>No tenés preguntas de este tipo</strong>
+        } @else {
+        <strong>Todavía no tenés preguntas</strong>
+        Creá tu primera pregunta para empezar a armar exámenes.
+        }
+    </div>
+    } @else {
+    <div class="tabla-contenedor">
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Tipo</th>
+                    <th>Enunciado</th>
+                    <th>Revisión</th>
+                    <th>Opciones</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (pregunta of preguntas(); track pregunta.id) {
+                <tr>
+                    <td>{{ pregunta.titulo }}</td>
+                    <td><span class="chip">{{ etiquetasTipo[pregunta.tipo] }}</span></td>
+                    <td>{{ pregunta.enunciado }}</td>
+                    <td>{{ pregunta.numeroRevision }}</td>
+                    <td>{{ pregunta.opciones.length }}</td>
+                    <td>
+                        <button type="button" class="boton-ver" (click)="alternarDetalle(pregunta)">
+                            {{ preguntaAbierta() === pregunta.id ? 'Ocultar' : 'Ver' }}
+                        </button>
+                        <a class="boton-ver" [routerLink]="['/preguntas', pregunta.id, 'editar']">Editar</a>
+                        <button type="button" class="boton-eliminar" (click)="eliminar(pregunta)">
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+                @if (preguntaAbierta() === pregunta.id) {
+                <tr class="detalle">
+                    <td colspan="6">
+                        <p class="detalle-enunciado">{{ pregunta.enunciado }}</p>
+                        <ul class="detalle-opciones">
+                            @for (opcion of pregunta.opciones; track opcion.id) {
+                            <li [class.correcta]="opcion.fraccionCredito > 0">
+                                {{ opcion.contenido }}
+                                @if (opcion.fraccionCredito > 0) {
+                                <span class="marca">✓ Correcta</span>
+                                }
+                            </li>
+                            }
+                        </ul>
+                        @if (pregunta.tipo === 'SHORT_TEXT') {
+                        <p>Respuestas aceptadas: {{ pregunta.respuestasAceptadas.join(', ') }}</p>
+                        <p>{{ pregunta.distingueMayusculas ? 'Distingue mayúsculas' : 'No distingue mayúsculas' }}</p>
+                        }
+                    </td>
+                </tr>
+                }
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+</main>
