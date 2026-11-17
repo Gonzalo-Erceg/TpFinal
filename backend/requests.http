@@ -1,17 +1,3 @@
-POST http://localhost:3000/auth/register
-Content-Type: application/json
-
-{
-    "firstName": "Gonzalo",
-    "lastName": "Erceg",
-    "email": "gonzalo@example.com",
-    "password": "password123",
-      "role": "TEACHER"
-}
-
-
-
-### Login
 POST http://localhost:3000/auth/login
 Content-Type: application/json
 
@@ -19,3 +5,47 @@ Content-Type: application/json
     "email": "gonzalo@example.com",
     "password": "password123"
 }
+
+### Crear examen (reemplazar TOKEN por el JWT del docente)
+POST http://localhost:3000/exams
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{
+    "title": "Primer parcial",
+    "description": "Unidades 1 a 3",
+    "opensAt": "2026-11-20T12:00:00.000Z",
+    "closesAt": "2026-11-20T14:00:00.000Z",
+    "durationMinutes": 90,
+    "maxAttempts": 1
+}
+
+### Listar exámenes del docente
+GET http://localhost:3000/exams
+Authorization: Bearer TOKEN
+
+### Detalle de un examen
+GET http://localhost:3000/exams/EXAM_ID
+Authorization: Bearer TOKEN
+
+### Editar borrador: metadatos, grupos y preguntas
+PUT http://localhost:3000/exams/EXAM_ID
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{
+    "title": "Primer parcial",
+    "description": "Unidades 1 a 3",
+    "opensAt": "2026-11-20T12:00:00.000Z",
+    "closesAt": "2026-11-20T14:00:00.000Z",
+    "durationMinutes": 90,
+    "maxAttempts": 1,
+    "groupIds": ["GROUP_ID"],
+    "questions": [
+        { "questionId": "QUESTION_ID", "points": 2, "position": 1 }
+    ]
+}
+
+### Cerrar
+POST http://localhost:3000/exams/EXAM_ID/close
+Authorization: Bearer TOKEN

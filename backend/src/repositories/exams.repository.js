@@ -1,5 +1,6 @@
 const sql = require('mssql');
 const { pool } = require('../config/database');
+const AuthError = require('../utils/auth-error');
 
 class ExamsRepository {
 
@@ -19,20 +20,20 @@ class ExamsRepository {
                 .input('durationMinutes', sql.Int, data.durationMinutes ?? null)
                 .input('maxAttempts', sql.Int, data.maxAttempts ?? null)
                 .query(`
-				INSERT INTO Exams (TeacherId, Title, Description, Status, OpensAt, ClosesAt, DurationMinutes, MaxAttempts, AttemptsScope)
-				OUTPUT INSERTED.Id
-				VALUES (@teacherId, @title, @description, 'DRAFT', @opensAt, @closesAt, @durationMinutes, @maxAttempts, 'EXAM')
-			`);
+                    INSERT INTO Exams (TeacherId, Title, Description, Status, OpensAt, ClosesAt, DurationMinutes, MaxAttempts, AttemptsScope)
+                    OUTPUT INSERTED.Id
+                    VALUES (@teacherId, @title, @description, 'DRAFT', @opensAt, @closesAt, @durationMinutes, @maxAttempts, 'EXAM')
+                `);
 
             const examId = examResult.recordset[0].Id;
 
             const versionResult = await new sql.Request(transaction)
                 .input('examId', sql.UniqueIdentifier, examId)
                 .query(`
-				INSERT INTO ExamVersions (ExamId, VersionNumber, Status)
-				OUTPUT INSERTED.Id
-				VALUES (@examId, 1, 'DRAFT')
-			`);
+                    INSERT INTO ExamVersions (ExamId, VersionNumber, Status)
+                    OUTPUT INSERTED.Id
+                    VALUES (@examId, 1, 'DRAFT')
+                `);
 
             const versionId = versionResult.recordset[0].Id;
 
@@ -40,16 +41,17 @@ class ExamsRepository {
                 .input('examId', sql.UniqueIdentifier, examId)
                 .input('versionId', sql.UniqueIdentifier, versionId)
                 .query(`
-				UPDATE Exams
-				SET CurrentVersionId = @versionId
-				WHERE Id = @examId
-			`);
+                    UPDATE Exams
+                    SET CurrentVersionId = @versionId
+                    WHERE Id = @examId
+                `);
 
             await transaction.commit();
 
             return {
                 id: examId,
-                versionId
+                currentVersionId: versionId,
+                status: 'DRAFT',
             };
 
         } catch (error) {
@@ -68,22 +70,38 @@ class ExamsRepository {
         const result = await db.request()
             .input('teacherId', sql.UniqueIdentifier, teacherId)
             .query(`
-			SELECT
-				Id,
-				Title,
-				Description,
-				Status,
-				CurrentVersionId,
-				OpensAt,
-				ClosesAt,
-				DurationMinutes,
-				MaxAttempts,
-				AttemptsScope,
-				CreatedAt
-			FROM Exams
-			WHERE TeacherId = @teacherId
-			ORDER BY CreatedAt DESC
-		`);
+                SELECT
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.Status,
+                    e.CurrentVersionId,
+                    v.Status AS CurrentVersionStatus,
+                    e.PublishAt,
+                    e.OpensAt,
+                    e.ClosesAt,
+                    e.DurationMinutes,
+                    e.MaxAttempts,
+                    e.AttemptsScope,
+                    e.CreatedAt,
+                    e.UpdatedAt,
+                    (
+                        SELECT COUNT(*)
+                        FROM ExamVersionQuestions q
+                        WHERE q.ExamVersionId = e.CurrentVersionId
+                    ) AS QuestionCount,
+                    STUFF((
+                        SELECT ',' + CONVERT(nvarchar(36), eg.GroupId)
+                        FROM ExamGroups eg
+                        WHERE eg.ExamId = e.Id
+                        ORDER BY eg.GroupId
+                        FOR XML PATH('')
+                    ), 1, 1, '') AS GroupIdsCsv
+                FROM Exams e
+                LEFT JOIN ExamVersions v ON v.Id = e.CurrentVersionId
+                WHERE e.TeacherId = @teacherId
+                ORDER BY e.CreatedAt DESC
+            `);
 
         return result.recordset;
     }
@@ -101,12 +119,111 @@ class ExamsRepository {
                     e.CurrentVersionId,
                     v.Status AS VersionStatus
                 FROM Exams e
-                JOIN ExamVersions v ON v.Id = e.CurrentVersionId
+                LEFT JOIN ExamVersions v ON v.Id = e.CurrentVersionId
                 WHERE e.Id = @examId
                   AND e.TeacherId = @teacherId
             `);
 
         return result.recordset[0];
+    }
+
+    async findDetailByIdAndTeacher(examId, teacherId) {
+        const db = await pool;
+
+        const examResult = await db.request()
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                SELECT
+                    e.Id,
+                    e.Title,
+                    e.Description,
+                    e.Status,
+                    e.CurrentVersionId,
+                    v.Status AS CurrentVersionStatus,
+                    v.VersionNumber AS CurrentVersionNumber,
+                    e.PublishAt,
+                    e.OpensAt,
+                    e.ClosesAt,
+                    e.DurationMinutes,
+                    e.MaxAttempts,
+                    e.AttemptsScope,
+                    e.CreatedAt,
+                    e.UpdatedAt,
+                    (
+                        SELECT COUNT(*)
+                        FROM ExamVersionQuestions q
+                        WHERE q.ExamVersionId = e.CurrentVersionId
+                    ) AS QuestionCount,
+                    STUFF((
+                        SELECT ',' + CONVERT(nvarchar(36), eg.GroupId)
+                        FROM ExamGroups eg
+                        WHERE eg.ExamId = e.Id
+                        ORDER BY eg.GroupId
+                        FOR XML PATH('')
+                    ), 1, 1, '') AS GroupIdsCsv
+                FROM Exams e
+                LEFT JOIN ExamVersions v ON v.Id = e.CurrentVersionId
+                WHERE e.Id = @examId
+                  AND e.TeacherId = @teacherId
+            `);
+
+        const exam = examResult.recordset[0];
+
+        if (!exam) {
+            return null;
+        }
+
+        const groupsResult = await db.request()
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                SELECT
+                    g.Id,
+                    g.Name,
+                    g.AccessCode
+                FROM ExamGroups eg
+                JOIN ClassGroups g ON g.Id = eg.GroupId
+                WHERE eg.ExamId = @examId
+                  AND g.TeacherId = @teacherId
+                ORDER BY g.Name
+            `);
+
+        let questionRows = [];
+
+        if (exam.CurrentVersionId) {
+            const questionsResult = await db.request()
+                .input('versionId', sql.UniqueIdentifier, exam.CurrentVersionId)
+                .query(`
+                    SELECT
+                        evq.Id AS ExamVersionQuestionId,
+                        r.QuestionId,
+                        r.Id AS RevisionId,
+                        b.Title,
+                        r.QuestionType,
+                        r.Statement,
+                        evq.Position,
+                        evq.Points,
+                        o.Id AS OptionId,
+                        o.Content,
+                        o.Position AS OptionPosition,
+                        o.CreditFraction
+                    FROM ExamVersionQuestions evq
+                    JOIN QuestionRevisions r ON r.Id = evq.QuestionRevisionId
+                    JOIN QuestionBankItems b ON b.Id = r.QuestionId
+                    LEFT JOIN QuestionOptions o ON o.QuestionRevisionId = r.Id
+                    WHERE evq.ExamVersionId = @versionId
+                    ORDER BY evq.Position, o.Position
+                `);
+
+            questionRows = questionsResult.recordset;
+        }
+
+        return {
+            exam,
+            groups: groupsResult.recordset,
+            questionRows,
+        };
     }
 
     async findLatestRevisions(questionIds, teacherId) {
@@ -143,7 +260,51 @@ class ExamsRepository {
         return result.recordset;
     }
 
-    async update(examId, versionId, data, preguntas) {
+    async findOwnedActiveGroupIds(groupIds, teacherId) {
+        if (groupIds.length === 0) {
+            return [];
+        }
+
+        const db = await pool;
+        const request = db.request().input('teacherId', sql.UniqueIdentifier, teacherId);
+
+        const nombres = groupIds.map((id, i) => {
+            request.input(`g${i}`, sql.UniqueIdentifier, id);
+            return `@g${i}`;
+        });
+
+        const result = await request.query(`
+            SELECT g.Id
+            FROM ClassGroups g
+            WHERE g.TeacherId = @teacherId
+              AND g.IsActive = 1
+              AND g.Id IN (${nombres.join(', ')})
+        `);
+
+        return result.recordset.map((row) => row.Id);
+    }
+
+    async replaceGroups(examId, groupIds, transaction) {
+        if (groupIds === undefined) {
+            return;
+        }
+
+        await new sql.Request(transaction)
+            .input('examId', sql.UniqueIdentifier, examId)
+            .query('DELETE FROM ExamGroups WHERE ExamId = @examId');
+
+        for (const groupId of groupIds) {
+            await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('groupId', sql.UniqueIdentifier, groupId)
+                .query(`
+                    INSERT INTO ExamGroups (ExamId, GroupId)
+                    VALUES (@examId, @groupId)
+                `);
+        }
+    }
+
+    async update(examId, versionId, data, preguntas, groupIds) {
         const db = await pool;
         const transaction = new sql.Transaction(db);
 
@@ -165,7 +326,8 @@ class ExamsRepository {
                         OpensAt = @opensAt,
                         ClosesAt = @closesAt,
                         DurationMinutes = @durationMinutes,
-                        MaxAttempts = @maxAttempts
+                        MaxAttempts = @maxAttempts,
+                        UpdatedAt = SYSUTCDATETIME()
                     WHERE Id = @examId
                 `);
 
@@ -188,12 +350,79 @@ class ExamsRepository {
                     `);
             }
 
+            await this.replaceGroups(examId, groupIds, transaction);
+
             await transaction.commit();
 
             return {
                 id: examId,
                 versionId,
-                questions: preguntas.length
+                questions: preguntas.length,
+            };
+
+        } catch (error) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+            }
+
+            throw error;
+        }
+    }
+
+    async close(examId, teacherId) {
+        const db = await pool;
+        const transaction = new sql.Transaction(db);
+
+        await transaction.begin();
+
+        try {
+            const examResult = await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('teacherId', sql.UniqueIdentifier, teacherId)
+                .query(`
+                    SELECT
+                        e.Id,
+                        e.Status
+                    FROM Exams e WITH (UPDLOCK, HOLDLOCK)
+                    WHERE e.Id = @examId
+                      AND e.TeacherId = @teacherId
+                `);
+
+            const exam = examResult.recordset[0];
+
+            if (!exam) {
+                throw new AuthError('El examen no existe', 404);
+            }
+
+            if (exam.Status === 'CLOSED') {
+                await transaction.commit();
+
+                return {
+                    id: exam.Id,
+                    status: 'CLOSED',
+                };
+            }
+
+            if (exam.Status === 'DRAFT') {
+                throw new AuthError('Sólo se puede cerrar un examen publicado', 409);
+            }
+
+            const closeResult = await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .query(`
+                    UPDATE Exams
+                    SET Status = 'CLOSED',
+                        UpdatedAt = SYSUTCDATETIME()
+                    OUTPUT INSERTED.Status AS Status
+                    WHERE Id = @examId
+                `);
+
+            await transaction.commit();
+
+            return {
+                id: examId,
+                status: closeResult.recordset[0].Status,
             };
 
         } catch (error) {
