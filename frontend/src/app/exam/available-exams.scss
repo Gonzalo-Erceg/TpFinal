@@ -178,8 +178,29 @@
   line-height: 1.5;
 }
 
-.boton-principal {
+.resultado {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+
+  strong {
+    color: var(--ink);
+    font-size: 16px;
+  }
+}
+
+.acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: auto;
+
+  .boton-principal {
+    margin-top: 0;
+  }
+}
+
+.boton-principal {
   border: 0;
   border-radius: 12px;
   background: var(--boton-fondo);
@@ -197,6 +218,27 @@
 
   &:hover {
     background: var(--boton-hover);
+  }
+}
+
+.boton-secundario {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 20px;
+  display: inline-flex;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s;
+
+  &:hover {
+    border-color: var(--boton-fondo);
   }
 }
 

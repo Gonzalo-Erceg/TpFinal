@@ -180,7 +180,8 @@
   min-width: 0;
 
   input,
-  textarea {
+  textarea,
+  select {
     width: 100%;
     padding: 12px 14px;
     box-sizing: border-box;
@@ -210,6 +211,22 @@
 
   textarea {
     resize: vertical;
+  }
+}
+
+.campo-check {
+  grid-auto-flow: column;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-self: start;
+  gap: 10px;
+  cursor: pointer;
+
+  input {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    accent-color: var(--boton-fondo);
   }
 }
 

@@ -26,6 +26,10 @@ export const serverRoutes: ServerRoute[] = [
         path: 'examen/:id',
         renderMode: RenderMode.Client
     },
+    {
+        path: 'resultado/:intentoId',
+        renderMode: RenderMode.Client
+    },
 
     {
         path: 'profesor',
@@ -41,6 +45,10 @@ export const serverRoutes: ServerRoute[] = [
     },
     {
         path: 'profesor/examenes/:id/editar',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes/:id/resultados',
         renderMode: RenderMode.Client
     },
     {

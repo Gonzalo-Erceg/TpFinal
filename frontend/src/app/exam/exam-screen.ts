@@ -13,7 +13,7 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ExamenService } from './exam.service';
-import { Examen, ExamenDisponible, Pregunta, Respuesta, TipoPregunta } from './exam.model';
+import { Examen, ExamenDisponible, EntregaExamen, Pregunta, Respuesta, TipoPregunta } from './exam.model';
 import { mensajeDeError } from '../core/api/api-error';
 import { RespuestaChoice } from './choice-answer';
 import { RespuestaTrueFalse } from './true-false-answer';
@@ -43,6 +43,7 @@ export class PantallaExamen implements OnInit, OnDestroy {
   ahora = signal(Date.now());
   disponible = signal<ExamenDisponible | null>(null);
   examen = signal<Examen | null>(null);
+  entrega = signal<EntregaExamen | null>(null);
   intentoEnCurso = signal(false);
   fechaLimite = signal<string | null>(null);
   estadoGuardado = signal<'sin-cambios' | 'guardando' | 'guardado' | 'error'>('sin-cambios');
@@ -523,7 +524,8 @@ export class PantallaExamen implements OnInit, OnDestroy {
       await this.vaciarRespuestasPendientes(examen.intentoId);
       const envio = firstValueFrom(this.examenService.entregarExamen(examen.intentoId));
       const espera = automatica ? this.esperar(MINIMO_AVISO_ENTREGA_MS) : Promise.resolve();
-      await Promise.all([envio, espera]);
+      const [entrega] = await Promise.all([envio, espera]);
+      this.entrega.set(entrega);
       this.dialogoEntrega()?.nativeElement.close();
       this.detenerTemporizador();
       this.documento.removeEventListener('fullscreenchange', this.alCambiarPantallaCompleta);

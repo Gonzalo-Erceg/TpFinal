@@ -57,6 +57,20 @@
           <span>Intentos máximos</span>
           <input type="number" min="1" step="1" formControlName="intentosMaximos">
         </label>
+
+        <label class="campo">
+          <span>Liberación de resultados</span>
+          <select formControlName="modoLiberacion">
+            <option value="MANUAL">Manual (el docente los libera)</option>
+            <option value="IMMEDIATE">Inmediata al corregir</option>
+            <option value="ON_CLOSE">Al cerrar el examen</option>
+          </select>
+        </label>
+
+        <label class="campo campo-check">
+          <input type="checkbox" formControlName="mostrarCorrectas">
+          <span>Mostrar las respuestas correctas en el resultado</span>
+        </label>
       </div>
     </section>
 

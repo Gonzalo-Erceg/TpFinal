@@ -29,11 +29,7 @@
         <article class="examen">
           <div class="examen-cabecera">
             <span class="etiqueta">{{ examen.grupo ?? 'Examen' }}</span>
-            @if (examen.intentoEnCurso) {
-              <span class="chip">En curso</span>
-            } @else {
-              <span class="chip">Disponible</span>
-            }
+            <span class="chip">{{ etiquetaEstado(examen) }}</span>
           </div>
 
           <h2 class="examen-titulo">{{ examen.titulo }}</h2>
@@ -68,13 +64,33 @@
             }
           </p>
 
-          @if (examen.intentoEnCurso) {
-            <a class="boton-principal" [routerLink]="['/examen', examen.id]">Reanudar examen</a>
-          } @else if (examen.puedeIniciar) {
-            <a class="boton-principal" [routerLink]="['/examen', examen.id]">Comenzar examen</a>
-          } @else {
-            <p class="no-disponible">{{ motivoNoDisponible(examen) }}</p>
+          @if (examen.resultadoDisponible && examen.ultimoPuntaje !== null) {
+            <p class="resultado">
+              Resultado: <strong>{{ examen.ultimoPuntaje }} / {{ examen.ultimoPuntajeMaximo }}</strong>
+            </p>
+          } @else if (examen.ultimoIntentoEstado === 'GRADING') {
+            <p class="examen-meta">Tu intento está en corrección.</p>
+          } @else if (examen.ultimoIntentoEstado === 'GRADED') {
+            <p class="examen-meta">Resultado corregido, pendiente de liberación.</p>
           }
+
+          <div class="acciones">
+            @if (examen.resultadoDisponible && examen.ultimoIntentoId) {
+              <a class="boton-principal" [routerLink]="['/resultado', examen.ultimoIntentoId]">Ver resultado</a>
+            }
+            @if (examen.intentoEnCurso) {
+              <a class="boton-secundario" [routerLink]="['/examen', examen.id]">Reanudar examen</a>
+            } @else if (examen.puedeIniciar) {
+              <a
+                [class]="examen.resultadoDisponible ? 'boton-secundario' : 'boton-principal'"
+                [routerLink]="['/examen', examen.id]"
+              >
+                Comenzar examen
+              </a>
+            } @else if (!examen.resultadoDisponible) {
+              <p class="no-disponible">{{ motivoNoDisponible(examen) }}</p>
+            }
+          </div>
         </article>
       }
     </div>

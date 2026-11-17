@@ -43,7 +43,27 @@ export class ListaExamenesAlumno implements OnInit {
       return 'El docente todavía no configuró la duración ni el cierre.';
     }
 
+    if (examen.ultimoIntentoEstado === 'GRADING') {
+      return 'La corrección de tu intento todavía está pendiente.';
+    }
+
+    if (examen.ultimoIntentoEstado === 'GRADED') {
+      return 'Tu resultado está corregido, pero el docente todavía no lo liberó.';
+    }
+
     return 'No te quedan intentos disponibles.';
+  }
+
+  etiquetaEstado(examen: ExamenDisponible): string {
+    if (examen.intentoEnCurso) {
+      return 'En curso';
+    }
+
+    if (examen.resultadoDisponible) {
+      return 'Resultado disponible';
+    }
+
+    return 'Disponible';
   }
 
   etiquetaDuracion(examen: ExamenDisponible): string {

@@ -13,6 +13,9 @@ import {
   ExamenDetalle,
   ExamenPublicado,
   ExamenResumen,
+  IntentoExamenResumen,
+  LiberacionResultados,
+  ModoLiberacion,
 } from './exam.model';
 
 interface ExamenResumenApi {
@@ -30,6 +33,10 @@ interface ExamenResumenApi {
   attemptsScope: AlcanceIntentos;
   groupIds: string[];
   questionCount: number;
+  attemptCount: number;
+  resultsReleaseMode: ModoLiberacion;
+  resultsReleasedAt: string | null;
+  showCorrectAnswers: boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -55,6 +62,27 @@ interface ExamenDetalleApi extends ExamenResumenApi {
   currentVersionNumber: number | null;
   groups: { id: string; name: string; accessCode: string }[];
   questions: PreguntaExamenApi[];
+}
+
+interface LiberacionApi {
+  id: string;
+  status: EstadoExamen;
+  resultsReleaseMode: ModoLiberacion;
+  resultsReleasedAt: string | null;
+}
+
+interface IntentoApi {
+  attemptId: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  attemptNumber: number;
+  status: string;
+  startedAt: string | null;
+  submittedAt: string | null;
+  totalScore: number | null;
+  maxScore: number | null;
+  gradedAt: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -93,6 +121,41 @@ export class ExamenesService {
     return this.http.post<ExamenCerrado>(`/exams/${id}/close`, {});
   }
 
+  liberarResultados(id: string): Observable<LiberacionResultados> {
+    return this.http
+      .post<LiberacionApi>(`/exams/${id}/release-results`, {})
+      .pipe(
+        map((liberacionApi) => ({
+          id: liberacionApi.id,
+          estado: liberacionApi.status,
+          modoLiberacion: liberacionApi.resultsReleaseMode,
+          liberadoEn: liberacionApi.resultsReleasedAt,
+        })),
+      );
+  }
+
+  obtenerIntentos(id: string): Observable<IntentoExamenResumen[]> {
+    return this.http
+      .get<IntentoApi[]>(`/exams/${id}/attempts`)
+      .pipe(
+        map((intentos) =>
+          intentos.map((intentoApi) => ({
+            intentoId: intentoApi.attemptId,
+            estudianteId: intentoApi.studentId,
+            estudianteNombre: intentoApi.studentName,
+            estudianteEmail: intentoApi.studentEmail,
+            numeroIntento: intentoApi.attemptNumber,
+            estado: intentoApi.status as IntentoExamenResumen['estado'],
+            iniciadoEn: intentoApi.startedAt,
+            entregadoEn: intentoApi.submittedAt,
+            puntajeTotal: intentoApi.totalScore,
+            puntajeMaximo: intentoApi.maxScore,
+            corregidoEn: intentoApi.gradedAt,
+          })),
+        ),
+      );
+  }
+
   private aBodyMetadatos(datos: DatosExamen): Record<string, unknown> {
     return {
       title: datos.titulo,
@@ -101,6 +164,8 @@ export class ExamenesService {
       closesAt: datos.cierraEn,
       durationMinutes: datos.duracionMinutos,
       maxAttempts: datos.intentosMaximos,
+      resultsReleaseMode: datos.modoLiberacion,
+      showCorrectAnswers: datos.mostrarCorrectas,
     };
   }
 
@@ -138,6 +203,10 @@ export class ExamenesService {
       alcanceIntentos: examenApi.attemptsScope,
       gruposIds: examenApi.groupIds ?? [],
       cantidadPreguntas: examenApi.questionCount ?? 0,
+      cantidadIntentos: examenApi.attemptCount ?? 0,
+      modoLiberacion: examenApi.resultsReleaseMode ?? 'MANUAL',
+      liberadoEn: examenApi.resultsReleasedAt ?? null,
+      mostrarCorrectas: examenApi.showCorrectAnswers ?? false,
       creadoEn: examenApi.createdAt,
       actualizadoEn: examenApi.updatedAt,
     };

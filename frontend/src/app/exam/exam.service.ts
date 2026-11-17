@@ -2,12 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError } from 'rxjs';
 import {
+  EntregaExamen,
+  EstadoIntento,
   Examen,
   ExamenDisponible,
   IntentoExamen,
   OpcionPregunta,
   Pregunta,
   Respuesta,
+  ResultadoExamen,
   TipoPregunta,
 } from './exam.model';
 
@@ -26,6 +29,11 @@ interface ExamenDisponibleApi {
   questionCount: number;
   totalPoints: number;
   canStart: boolean;
+  lastAttemptId: string | null;
+  lastAttemptStatus: EstadoIntento | null;
+  lastAttemptScore: number | null;
+  lastAttemptMaxScore: number | null;
+  resultAvailable: boolean;
 }
 
 interface OpcionApi {
@@ -69,6 +77,47 @@ interface ExamenDetalleApi {
 interface IntentoApi {
   attemptId: string;
   deadlineAt: string;
+}
+
+interface EntregaApi {
+  attemptId: string;
+  status: EstadoIntento;
+  submittedAt: string | null;
+  resultAvailable: boolean;
+}
+
+interface OpcionResultadoApi {
+  id: string;
+  content: string;
+  position: number;
+  selected: boolean;
+}
+
+interface RespuestaResultadoApi {
+  examVersionQuestionId: string;
+  position: number;
+  type: string;
+  statement: string;
+  awardedPoints: number | null;
+  maxPoints: number;
+  isCorrect: boolean;
+  responseText: string | null;
+  selectedOptionIds: string[];
+  correctOptionIds: string[];
+  options: OpcionResultadoApi[];
+}
+
+interface ResultadoApi {
+  attemptId: string;
+  examId: string;
+  status: EstadoIntento;
+  totalScore: number | null;
+  maxScore: number | null;
+  percentage: number | null;
+  showCorrectAnswers: boolean;
+  submittedAt: string | null;
+  gradedAt: string | null;
+  answers: RespuestaResultadoApi[];
 }
 
 function aTipoPregunta(tipo: string): TipoPregunta {
@@ -142,8 +191,23 @@ export class ExamenService {
       .pipe(map(() => undefined));
   }
 
-  entregarExamen(intentoId: string): Observable<void> {
-    return this.http.post<unknown>(`/attempts/${intentoId}/submit`, {}).pipe(map(() => undefined));
+  entregarExamen(intentoId: string): Observable<EntregaExamen> {
+    return this.http
+      .post<EntregaApi>(`/attempts/${intentoId}/submit`, {})
+      .pipe(
+        map((entregaApi) => ({
+          intentoId: entregaApi.attemptId,
+          estado: entregaApi.status,
+          entregadoEn: entregaApi.submittedAt,
+          resultadoDisponible: entregaApi.resultAvailable,
+        })),
+      );
+  }
+
+  obtenerResultado(intentoId: string): Observable<ResultadoExamen> {
+    return this.http
+      .get<ResultadoApi>(`/attempts/${intentoId}/result`)
+      .pipe(map((resultadoApi) => this.aResultado(resultadoApi)));
   }
 
   private aCuerpoRespuesta(pregunta: Pregunta, valor: Respuesta): Record<string, unknown> {
@@ -174,6 +238,43 @@ export class ExamenService {
       cantidadPreguntas: examenApi.questionCount ?? 0,
       puntajeTotal: examenApi.totalPoints ?? 0,
       puedeIniciar: examenApi.canStart,
+      ultimoIntentoId: examenApi.lastAttemptId ?? null,
+      ultimoIntentoEstado: examenApi.lastAttemptStatus ?? null,
+      ultimoPuntaje: examenApi.lastAttemptScore ?? null,
+      ultimoPuntajeMaximo: examenApi.lastAttemptMaxScore ?? null,
+      resultadoDisponible: examenApi.resultAvailable ?? false,
+    };
+  }
+
+  private aResultado(resultadoApi: ResultadoApi): ResultadoExamen {
+    return {
+      intentoId: resultadoApi.attemptId,
+      examenId: resultadoApi.examId,
+      estado: resultadoApi.status,
+      puntajeTotal: resultadoApi.totalScore,
+      puntajeMaximo: resultadoApi.maxScore,
+      porcentaje: resultadoApi.percentage,
+      mostrarCorrectas: resultadoApi.showCorrectAnswers,
+      entregadoEn: resultadoApi.submittedAt,
+      corregidoEn: resultadoApi.gradedAt,
+      respuestas: (resultadoApi.answers ?? []).map((respuestaApi) => ({
+        id: respuestaApi.examVersionQuestionId,
+        posicion: respuestaApi.position,
+        tipo: aTipoPregunta(respuestaApi.type),
+        enunciado: respuestaApi.statement,
+        puntosObtenidos: respuestaApi.awardedPoints,
+        puntosMaximos: respuestaApi.maxPoints,
+        correcta: respuestaApi.isCorrect,
+        respuestaTexto: respuestaApi.responseText,
+        opcionesSeleccionadas: respuestaApi.selectedOptionIds ?? [],
+        opcionesCorrectas: respuestaApi.correctOptionIds ?? [],
+        opciones: (respuestaApi.options ?? []).map((opcionApi) => ({
+          id: opcionApi.id,
+          texto: opcionApi.content,
+          posicion: opcionApi.position,
+          seleccionada: opcionApi.selected,
+        })),
+      })),
     };
   }
 

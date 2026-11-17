@@ -17,9 +17,23 @@
       }
       <p class="entregado-detalle">
         Respondiste <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> preguntas.
-        Vas a poder ver el resultado cuando tu docente lo habilite.
       </p>
-      <a class="boton" routerLink="/examenes">Volver a mis exámenes</a>
+      @if (entrega(); as envio) {
+        @if (envio.resultadoDisponible) {
+          <p class="entregado-detalle">Tu examen ya está corregido y el resultado está disponible.</p>
+          <a class="boton" [routerLink]="['/resultado', envio.intentoId]">Ver resultado</a>
+        } @else if (envio.estado === 'GRADING') {
+          <p class="entregado-detalle">
+            Tu examen tiene preguntas que requieren revisión manual. Vas a poder ver el resultado cuando el
+            docente lo libere.
+          </p>
+        } @else {
+          <p class="entregado-detalle">Vas a poder ver el resultado cuando tu docente lo habilite.</p>
+        }
+      } @else {
+        <p class="entregado-detalle">Vas a poder ver el resultado cuando tu docente lo habilite.</p>
+      }
+      <a class="boton secundario" routerLink="/examenes">Volver a mis exámenes</a>
     </section>
   } @else if (salioDePantallaCompleta()) {
     <section class="entregado">

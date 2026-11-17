@@ -83,4 +83,38 @@ export class ListaExamenes implements OnInit {
       },
     });
   }
+
+  liberar(examen: ExamenResumen): void {
+    this.procesando.set(examen.id);
+    this.errorAccion.set(null);
+    this.anuncio.set(null);
+
+    this.examenesService.liberarResultados(examen.id).subscribe({
+      next: () => {
+        this.procesando.set(null);
+        this.anuncio.set(`Los resultados de "${examen.titulo}" quedaron liberados.`);
+        this.cargar();
+      },
+      error: (error) => {
+        this.procesando.set(null);
+        this.errorAccion.set(mensajeDeError(error, 'No se pudieron liberar los resultados.'));
+      },
+    });
+  }
+
+  etiquetaLiberacion(examen: ExamenResumen): string {
+    if (examen.estado === 'DRAFT') {
+      return '—';
+    }
+
+    if (examen.modoLiberacion === 'IMMEDIATE') {
+      return 'Inmediatos';
+    }
+
+    if (examen.modoLiberacion === 'ON_CLOSE') {
+      return 'Al cerrar';
+    }
+
+    return examen.liberadoEn ? 'Liberados' : 'Pendientes';
+  }
 }

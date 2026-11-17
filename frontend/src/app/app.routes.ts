@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 
 import { PantallaExamen } from './exam/exam-screen';
 import { ListaExamenesAlumno } from './exam/available-exams';
+import { ResultadoExamenPantalla } from './exam/resultado-examen';
 import { ListaGrupos } from './groups/groups-list';
 import { InicioSesion } from './auth/login/login';
 import { Registro } from './auth/register/register';
@@ -12,6 +13,7 @@ import { BancoPreguntas } from './questions/question-bank';
 import { FormularioPregunta } from './questions/question-form';
 import { ListaExamenes } from './exams/exams-list';
 import { FormularioExamen } from './exams/exam-form';
+import { ResultadosExamen } from './exams/exams-results';
 
 import { authGuard } from './core/auth/auth.guard';
 import { roleGuard } from './core/auth/role.guard';
@@ -45,6 +47,12 @@ export const routes: Routes = [
         path: 'examen',
         redirectTo: 'examenes',
         pathMatch: 'full',
+    },
+    {
+        path: 'resultado/:intentoId',
+        component: ResultadoExamenPantalla,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
     },
     {
         path: 'profesor',
@@ -87,6 +95,12 @@ export const routes: Routes = [
     {
         path: 'profesor/examenes/:id/editar',
         component: FormularioExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/:id/resultados',
+        component: ResultadosExamen,
         canActivate: [authGuard, roleGuard],
         data: { role: 'TEACHER' },
     },

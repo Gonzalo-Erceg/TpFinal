@@ -1,0 +1,106 @@
+<main class="pagina">
+  @if (cargando()) {
+    <p class="aviso">Cargando el resultado...</p>
+  } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    <div class="acciones">
+      <button type="button" class="boton-principal" (click)="cargar()">Reintentar</button>
+      <a class="boton-secundario" routerLink="/examenes">Volver a mis exámenes</a>
+    </div>
+  } @else if (noDisponible()) {
+    <section class="aviso-resultado" role="status">
+      <span class="aviso-icono" aria-hidden="true">⏳</span>
+      <h1 class="aviso-titulo">Resultado no disponible</h1>
+      <p class="aviso-detalle">{{ noDisponible() }}</p>
+      <a class="boton-principal" routerLink="/examenes">Volver a mis exámenes</a>
+    </section>
+  } @else if (resultado(); as r) {
+    <a class="volver" routerLink="/examenes">← Volver a mis exámenes</a>
+
+    <header class="encabezado">
+      <div>
+        <p class="etiqueta">Resultado</p>
+        <h1 class="titulo">{{ titulo() }}</h1>
+        <p class="subtitulo">
+          Entregado el {{ r.entregadoEn | date: 'dd/MM/yyyy HH:mm' }}
+          @if (r.corregidoEn) {
+            · Corregido el {{ r.corregidoEn | date: 'dd/MM/yyyy HH:mm' }}
+          }
+        </p>
+      </div>
+
+      <div class="puntaje" aria-label="Puntaje obtenido">
+        <strong>{{ r.puntajeTotal ?? 0 }} / {{ r.puntajeMaximo ?? 0 }}</strong>
+        <span>puntos</span>
+        @if (r.porcentaje !== null) {
+          <span class="porcentaje">{{ r.porcentaje }}%</span>
+        }
+      </div>
+    </header>
+
+    @if (!r.mostrarCorrectas) {
+      <p class="nota">
+        <span aria-hidden="true">ℹ</span>
+        El docente no habilitó la visualización de las respuestas correctas.
+      </p>
+    }
+
+    <ol class="preguntas">
+      @for (respuesta of r.respuestas; track respuesta.id; let i = $index) {
+        <li class="pregunta">
+          <header class="pregunta-cabecera">
+            <span class="pregunta-numero">Pregunta {{ i + 1 }}</span>
+            <span class="pregunta-tipo">{{ etiquetasTipo[respuesta.tipo] }}</span>
+            <span class="pregunta-puntaje">{{ respuesta.puntosObtenidos ?? 0 }} / {{ respuesta.puntosMaximos }}</span>
+          </header>
+
+          <h2 class="enunciado">{{ respuesta.enunciado }}</h2>
+
+          @if (tieneOpciones(respuesta)) {
+            <ul class="opciones">
+              @for (opcion of respuesta.opciones; track opcion.id) {
+                <li
+                  class="opcion"
+                  [class.elegida]="estaElegida(respuesta, opcion.id)"
+                  [class.correcta]="esCorrectaOpcion(respuesta, opcion.id)"
+                  [class.incorrecta]="esOpcionIncorrecta(respuesta, opcion.id)"
+                >
+                  <span class="opcion-marca" aria-hidden="true">
+                    @if (esCorrectaOpcion(respuesta, opcion.id)) {
+                      ✓
+                    } @else if (esOpcionIncorrecta(respuesta, opcion.id)) {
+                      ✕
+                    } @else if (estaElegida(respuesta, opcion.id)) {
+                      ●
+                    }
+                  </span>
+                  <span class="opcion-texto">{{ opcion.texto }}</span>
+                  <span class="opcion-etiqueta">
+                    @if (estaElegida(respuesta, opcion.id)) {
+                      Tu respuesta
+                    }
+                    @if (esCorrectaOpcion(respuesta, opcion.id)) {
+                      Correcta
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="respuesta-texto">
+              @if (textoRespuesta(respuesta); as texto) {
+                <p>{{ texto }}</p>
+              } @else {
+                <p class="sin-responder"><span aria-hidden="true">—</span> Sin responder</p>
+              }
+            </div>
+          }
+
+          <p class="veredicto" [attr.data-estado]="claseVeredicto(respuesta)">
+            {{ etiquetaVeredicto(respuesta) }}
+          </p>
+        </li>
+      }
+    </ol>
+  }
+</main>

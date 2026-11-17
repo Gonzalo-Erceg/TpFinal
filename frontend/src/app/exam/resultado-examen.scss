@@ -1,0 +1,351 @@
+:host {
+  --bg: #f8f7f5;
+  --white: #fff;
+  --ink: #242332;
+  --muted: #8b8998;
+  --border: #e9e6ea;
+  --texto-suave: #6f6b7c;
+  --fondo-pagina: #f8f8f9;
+  --brillo: #efedf7;
+  --boton-fondo: #382e54;
+  --boton-texto: #fff;
+  --boton-hover: #544077;
+  --ok-fondo: #e3f3e9;
+  --ok-texto: #1f6b47;
+  --ok-borde: #bfe0cd;
+  --error-fondo: #fbe4e7;
+  --error-texto: #a3303f;
+  --error-borde: #f1c2c8;
+  --pendiente-fondo: #fff4d1;
+  --pendiente-texto: #8a6100;
+  --pendiente-borde: #f0dc9b;
+
+  display: block;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 52% 42% at 90% -16%, var(--brillo) 0%, transparent 72%),
+    var(--fondo-pagina);
+}
+
+.pagina {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 4vw, 56px) 56px;
+}
+
+.volver {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: var(--boton-fondo);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.titulo {
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.etiqueta {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.subtitulo {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.puntaje {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 18px 24px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+
+  strong {
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .porcentaje {
+    grid-column: 1 / -1;
+    color: var(--boton-fondo);
+    font-size: 15px;
+    font-weight: 700;
+  }
+}
+
+.aviso,
+.error {
+  font-size: 14px;
+}
+
+.aviso {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--error-texto);
+}
+
+.acciones {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.boton-principal,
+.boton-secundario {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.boton-principal {
+  border: 0;
+  background: var(--boton-fondo);
+  color: var(--boton-texto);
+
+  &:hover {
+    background: var(--boton-hover);
+  }
+}
+
+.boton-secundario {
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink);
+
+  &:hover {
+    border-color: var(--boton-fondo);
+  }
+}
+
+.aviso-resultado {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--white);
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+
+  .aviso-icono {
+    font-size: 40px;
+  }
+
+  .aviso-titulo {
+    margin: 12px 0 8px;
+    font-size: 24px;
+  }
+
+  .aviso-detalle {
+    max-width: 460px;
+    margin: 0 auto 24px;
+    color: var(--texto-suave);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+.nota {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--pendiente-fondo);
+  border: 1px solid var(--pendiente-borde);
+  color: var(--pendiente-texto);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.preguntas {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pregunta {
+  padding: 22px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.pregunta-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pregunta-numero {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pregunta-tipo {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.pregunta-puntaje {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.enunciado {
+  margin: 14px 0 16px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+
+  &.elegida {
+    background: var(--brillo);
+    border-color: #d8d0ef;
+  }
+
+  &.correcta {
+    background: var(--ok-fondo);
+    border-color: var(--ok-borde);
+    color: var(--ok-texto);
+  }
+
+  &.incorrecta {
+    background: var(--error-fondo);
+    border-color: var(--error-borde);
+    color: var(--error-texto);
+  }
+}
+
+.opcion-marca {
+  flex: 0 0 18px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.opcion-texto {
+  flex: 1;
+}
+
+.opcion-etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.respuesta-texto {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.6;
+
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  .sin-responder {
+    color: var(--muted);
+  }
+}
+
+.veredicto {
+  display: inline-block;
+  margin: 16px 0 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+
+  &[data-estado='bien'] {
+    background: var(--ok-fondo);
+    border: 1px solid var(--ok-borde);
+    color: var(--ok-texto);
+  }
+
+  &[data-estado='parcial'] {
+    background: var(--pendiente-fondo);
+    border: 1px solid var(--pendiente-borde);
+    color: var(--pendiente-texto);
+  }
+
+  &[data-estado='mal'] {
+    background: var(--error-fondo);
+    border: 1px solid var(--error-borde);
+    color: var(--error-texto);
+  }
+
+  &[data-estado='pendiente'] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+}

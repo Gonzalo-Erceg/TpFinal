@@ -1,8 +1,10 @@
 import { TipoPregunta } from '../questions/question.model';
+import { EstadoIntento } from '../exam/exam.model';
 
 export type EstadoExamen = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'CLOSED';
 export type EstadoVersionExamen = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 export type AlcanceIntentos = 'EXAM' | 'VERSION';
+export type ModoLiberacion = 'IMMEDIATE' | 'ON_CLOSE' | 'MANUAL';
 
 export interface ExamenResumen {
   id: string;
@@ -19,6 +21,10 @@ export interface ExamenResumen {
   alcanceIntentos: AlcanceIntentos;
   gruposIds: string[];
   cantidadPreguntas: number;
+  cantidadIntentos: number;
+  modoLiberacion: ModoLiberacion;
+  liberadoEn: string | null;
+  mostrarCorrectas: boolean;
   creadoEn: string | null;
   actualizadoEn: string | null;
 }
@@ -61,6 +67,8 @@ export interface DatosExamen {
   cierraEn: string | null;
   duracionMinutos: number | null;
   intentosMaximos: number | null;
+  modoLiberacion: ModoLiberacion;
+  mostrarCorrectas: boolean;
   gruposIds?: string[];
   preguntas?: PreguntaSeleccionada[];
 }
@@ -81,4 +89,25 @@ export interface ExamenPublicado {
 export interface ExamenCerrado {
   id: string;
   status: EstadoExamen;
+}
+
+export interface LiberacionResultados {
+  id: string;
+  estado: EstadoExamen;
+  modoLiberacion: ModoLiberacion;
+  liberadoEn: string | null;
+}
+
+export interface IntentoExamenResumen {
+  intentoId: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  estudianteEmail: string;
+  numeroIntento: number;
+  estado: EstadoIntento;
+  iniciadoEn: string | null;
+  entregadoEn: string | null;
+  puntajeTotal: number | null;
+  puntajeMaximo: number | null;
+  corregidoEn: string | null;
 }

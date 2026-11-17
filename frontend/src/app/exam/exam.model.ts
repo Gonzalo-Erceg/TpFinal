@@ -23,6 +23,8 @@ export interface Pregunta {
 
 export type Respuesta = string | string[];
 
+export type EstadoIntento = 'IN_PROGRESS' | 'SUBMITTED' | 'GRADING' | 'GRADED' | 'CANCELLED';
+
 export interface ExamenDisponible {
   id: string;
   titulo: string;
@@ -38,6 +40,11 @@ export interface ExamenDisponible {
   cantidadPreguntas: number;
   puntajeTotal: number;
   puedeIniciar: boolean;
+  ultimoIntentoId: string | null;
+  ultimoIntentoEstado: EstadoIntento | null;
+  ultimoPuntaje: number | null;
+  ultimoPuntajeMaximo: number | null;
+  resultadoDisponible: boolean;
 }
 
 export interface Examen {
@@ -59,4 +66,45 @@ export interface IntentoExamen {
   intentoId: string;
   fechaLimite: string;
   creado: boolean;
+}
+
+export interface EntregaExamen {
+  intentoId: string;
+  estado: EstadoIntento;
+  entregadoEn: string | null;
+  resultadoDisponible: boolean;
+}
+
+export interface OpcionResultado {
+  id: string;
+  texto: string;
+  posicion: number;
+  seleccionada: boolean;
+}
+
+export interface RespuestaResultado {
+  id: string;
+  posicion: number;
+  tipo: TipoPregunta;
+  enunciado: string;
+  puntosObtenidos: number | null;
+  puntosMaximos: number;
+  correcta: boolean;
+  respuestaTexto: string | null;
+  opcionesSeleccionadas: string[];
+  opcionesCorrectas: string[];
+  opciones: OpcionResultado[];
+}
+
+export interface ResultadoExamen {
+  intentoId: string;
+  examenId: string;
+  estado: EstadoIntento;
+  puntajeTotal: number | null;
+  puntajeMaximo: number | null;
+  porcentaje: number | null;
+  mostrarCorrectas: boolean;
+  entregadoEn: string | null;
+  corregidoEn: string | null;
+  respuestas: RespuestaResultado[];
 }

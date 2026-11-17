@@ -3,7 +3,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, forkJoin, of, switchMap } from 'rxjs';
 import { ExamenesService } from './exams.service';
-import { DatosExamen, EstadoExamen, ExamenDetalle, PreguntaSeleccionada } from './exam.model';
+import { DatosExamen, EstadoExamen, ExamenDetalle, ModoLiberacion, PreguntaSeleccionada } from './exam.model';
 import { Pregunta, TipoPregunta } from '../questions/question.model';
 import { PreguntasService } from '../questions/questions.service';
 import { GruposService } from '../groups/groups.service';
@@ -69,6 +69,8 @@ export class FormularioExamen implements OnInit {
     cierraEn: new FormControl('', { nonNullable: true }),
     duracionMinutos: new FormControl<number | null>(null, { validators: [Validators.min(1)] }),
     intentosMaximos: new FormControl<number | null>(null, { validators: [Validators.min(1)] }),
+    modoLiberacion: new FormControl<ModoLiberacion>('MANUAL', { nonNullable: true }),
+    mostrarCorrectas: new FormControl(false, { nonNullable: true }),
   });
 
   preguntasBanco = signal<Pregunta[]>([]);
@@ -150,6 +152,8 @@ export class FormularioExamen implements OnInit {
       cierraEn: aDatetimeLocal(examen.cierraEn),
       duracionMinutos: examen.duracionMinutos,
       intentosMaximos: examen.intentosMaximos,
+      modoLiberacion: examen.modoLiberacion,
+      mostrarCorrectas: examen.mostrarCorrectas,
     });
 
     this.seleccionadas.set(
@@ -347,6 +351,8 @@ export class FormularioExamen implements OnInit {
       cierraEn: aIso(valor.cierraEn),
       duracionMinutos: valor.duracionMinutos,
       intentosMaximos: valor.intentosMaximos,
+      modoLiberacion: valor.modoLiberacion,
+      mostrarCorrectas: valor.mostrarCorrectas,
       gruposIds: this.gruposSeleccionados(),
       preguntas: this.seleccionadas(),
     };

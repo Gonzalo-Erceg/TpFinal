@@ -538,6 +538,12 @@
     }
 }
 
+.entregado .boton {
+    display: inline-flex;
+    margin: 18px 6px 0;
+    text-decoration: none;
+}
+
 .entregado-icono.alerta {
     background: var(--rojo-fondo, #fdecec);
     color: var(--rojo, #b42318);

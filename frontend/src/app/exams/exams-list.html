@@ -32,7 +32,9 @@
           <th>Título</th>
           <th>Estado</th>
           <th>Preguntas</th>
+          <th>Intentos</th>
           <th>Grupos</th>
+          <th>Resultados</th>
           <th>Apertura</th>
           <th>Cierre</th>
           <th>Acciones</th>
@@ -53,7 +55,9 @@
             </span>
           </td>
           <td>{{ examen.cantidadPreguntas }}</td>
+          <td>{{ examen.cantidadIntentos }}</td>
           <td>{{ examen.gruposIds.length }}</td>
+          <td>{{ etiquetaLiberacion(examen) }}</td>
           <td>{{ examen.abreEn ? (examen.abreEn | date: 'short') : '—' }}</td>
           <td>{{ examen.cierraEn ? (examen.cierraEn | date: 'short') : '—' }}</td>
           <td class="acciones-fila">
@@ -65,13 +69,22 @@
               (click)="publicar(examen)">
               Publicar
             </button>
-            } @else if (examen.estado !== 'CLOSED') {
+            } @else {
+            @if (examen.estado !== 'CLOSED') {
             <button type="button" class="boton-secundario boton-chico" [disabled]="procesando() === examen.id"
               (click)="cerrar(examen)">
               Cerrar
             </button>
-            } @else {
-            <span class="detalle">Sin acciones</span>
+            }
+            <a class="boton-secundario boton-chico" [routerLink]="['/profesor/examenes', examen.id, 'resultados']">
+              Resultados
+            </a>
+            @if (examen.modoLiberacion === 'MANUAL' && !examen.liberadoEn) {
+            <button type="button" class="boton-principal boton-chico" [disabled]="procesando() === examen.id"
+              (click)="liberar(examen)">
+              {{ procesando() === examen.id ? 'Liberando...' : 'Liberar resultados' }}
+            </button>
+            }
             }
           </td>
         </tr>
