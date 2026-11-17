@@ -69,6 +69,7 @@
               <th>Puntaje</th>
               <th>Entregado</th>
               <th>Corregido</th>
+              <th>Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -87,6 +88,16 @@
                 <td>{{ puntaje(intento) }}</td>
                 <td>{{ intento.entregadoEn ? (intento.entregadoEn | date: 'short') : '—' }}</td>
                 <td>{{ intento.corregidoEn ? (intento.corregidoEn | date: 'short') : '—' }}</td>
+                <td>
+                  @if (intento.estado === 'GRADING') {
+                    <a
+                      class="accion"
+                      [routerLink]="['/profesor/examenes', examenActual.id, 'intentos', intento.intentoId, 'revisar']"
+                    >
+                      Corregir
+                    </a>
+                  }
+                </td>
               </tr>
             }
           </tbody>

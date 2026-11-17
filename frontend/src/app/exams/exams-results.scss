@@ -207,6 +207,18 @@
   }
 }
 
+.accion {
+  color: var(--boton-fondo);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .alumno-nombre {
   font-size: 15px;
 }

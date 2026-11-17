@@ -3,9 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { TipoPregunta } from '../questions/question.model';
+import { EstadoIntento } from '../exam/exam.model';
 import {
   AlcanceIntentos,
   DatosExamen,
+  EstadoCorreccion,
   EstadoExamen,
   EstadoVersionExamen,
   ExamenCerrado,
@@ -16,6 +18,10 @@ import {
   IntentoExamenResumen,
   LiberacionResultados,
   ModoLiberacion,
+  CalificacionManual,
+  MetodoCorreccion,
+  RevisionGuardada,
+  RevisionIntento,
 } from './exam.model';
 
 interface ExamenResumenApi {
@@ -80,6 +86,45 @@ interface IntentoApi {
   status: string;
   startedAt: string | null;
   submittedAt: string | null;
+  totalScore: number | null;
+  maxScore: number | null;
+  gradedAt: string | null;
+}
+
+interface PreguntaRevisionApi {
+  examVersionQuestionId: string;
+  position: number;
+  type: TipoPregunta;
+  statement: string;
+  points: number;
+  responseText: string | null;
+  gradingStatus: EstadoCorreccion | null;
+  awardedPoints: number | null;
+  gradingMethod: MetodoCorreccion | null;
+  needsReview: boolean;
+  editable: boolean;
+}
+
+interface RevisionApi {
+  attemptId: string;
+  examId: string;
+  examTitle: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  attemptNumber: number;
+  status: EstadoIntento;
+  submittedAt: string | null;
+  totalScore: number | null;
+  maxScore: number | null;
+  gradedAt: string | null;
+  pendingCount: number;
+  questions: PreguntaRevisionApi[];
+}
+
+interface RevisionGuardadaApi {
+  attemptId: string;
+  status: EstadoIntento;
   totalScore: number | null;
   maxScore: number | null;
   gradedAt: string | null;
@@ -156,6 +201,35 @@ export class ExamenesService {
       );
   }
 
+  obtenerRevision(examenId: string, intentoId: string): Observable<RevisionIntento> {
+    return this.http
+      .get<RevisionApi>(`/exams/${examenId}/attempts/${intentoId}/review`)
+      .pipe(map((revisionApi) => this.aRevision(revisionApi)));
+  }
+
+  guardarRevision(
+    examenId: string,
+    intentoId: string,
+    calificaciones: CalificacionManual[],
+  ): Observable<RevisionGuardada> {
+    return this.http
+      .put<RevisionGuardadaApi>(`/exams/${examenId}/attempts/${intentoId}/review`, {
+        grades: calificaciones.map((calificacion) => ({
+          examVersionQuestionId: calificacion.idExamenVersionPregunta,
+          awardedPoints: calificacion.puntosObtenidos,
+        })),
+      })
+      .pipe(
+        map((resultado) => ({
+          intentoId: resultado.attemptId,
+          estado: resultado.status,
+          puntajeTotal: resultado.totalScore,
+          puntajeMaximo: resultado.maxScore,
+          corregidoEn: resultado.gradedAt,
+        })),
+      );
+  }
+
   private aBodyMetadatos(datos: DatosExamen): Record<string, unknown> {
     return {
       title: datos.titulo,
@@ -209,6 +283,37 @@ export class ExamenesService {
       mostrarCorrectas: examenApi.showCorrectAnswers ?? false,
       creadoEn: examenApi.createdAt,
       actualizadoEn: examenApi.updatedAt,
+    };
+  }
+
+  private aRevision(revisionApi: RevisionApi): RevisionIntento {
+    return {
+      intentoId: revisionApi.attemptId,
+      examenId: revisionApi.examId,
+      tituloExamen: revisionApi.examTitle,
+      estudianteId: revisionApi.studentId,
+      estudianteNombre: revisionApi.studentName,
+      estudianteEmail: revisionApi.studentEmail,
+      numeroIntento: revisionApi.attemptNumber,
+      estado: revisionApi.status,
+      entregadoEn: revisionApi.submittedAt,
+      puntajeTotal: revisionApi.totalScore,
+      puntajeMaximo: revisionApi.maxScore,
+      corregidoEn: revisionApi.gradedAt,
+      cantidadPendientes: revisionApi.pendingCount,
+      preguntas: revisionApi.questions.map((pregunta) => ({
+        idExamenVersionPregunta: pregunta.examVersionQuestionId,
+        posicion: pregunta.position,
+        tipo: pregunta.type,
+        enunciado: pregunta.statement,
+        puntos: pregunta.points,
+        textoRespuesta: pregunta.responseText,
+        estadoCorreccion: pregunta.gradingStatus,
+        puntosObtenidos: pregunta.awardedPoints,
+        metodoCorreccion: pregunta.gradingMethod,
+        necesitaRevision: pregunta.needsReview,
+        editable: pregunta.editable,
+      })),
     };
   }
 

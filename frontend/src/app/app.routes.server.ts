@@ -52,6 +52,10 @@ export const serverRoutes: ServerRoute[] = [
         renderMode: RenderMode.Client
     },
     {
+        path: 'profesor/examenes/:id/intentos/:intentoId/revisar',
+        renderMode: RenderMode.Client
+    },
+    {
         path: 'preguntas',
         renderMode: RenderMode.Client
     },

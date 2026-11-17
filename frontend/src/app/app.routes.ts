@@ -14,6 +14,7 @@ import { FormularioPregunta } from './questions/question-form';
 import { ListaExamenes } from './exams/exams-list';
 import { FormularioExamen } from './exams/exam-form';
 import { ResultadosExamen } from './exams/exams-results';
+import { RevisionIntentoPantalla } from './exams/attempt-review';
 
 import { authGuard } from './core/auth/auth.guard';
 import { roleGuard } from './core/auth/role.guard';
@@ -101,6 +102,12 @@ export const routes: Routes = [
     {
         path: 'profesor/examenes/:id/resultados',
         component: ResultadosExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/:id/intentos/:intentoId/revisar',
+        component: RevisionIntentoPantalla,
         canActivate: [authGuard, roleGuard],
         data: { role: 'TEACHER' },
     },

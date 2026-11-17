@@ -111,3 +111,50 @@ export interface IntentoExamenResumen {
   puntajeMaximo: number | null;
   corregidoEn: string | null;
 }
+
+export type EstadoCorreccion = 'PENDING' | 'AUTO_GRADED' | 'MANUAL_REVIEW' | 'GRADED';
+export type MetodoCorreccion = 'AUTOMATIC' | 'MANUAL';
+
+export interface PreguntaRevision {
+  idExamenVersionPregunta: string;
+  posicion: number;
+  tipo: TipoPregunta;
+  enunciado: string;
+  puntos: number;
+  textoRespuesta: string | null;
+  estadoCorreccion: EstadoCorreccion | null;
+  puntosObtenidos: number | null;
+  metodoCorreccion: MetodoCorreccion | null;
+  necesitaRevision: boolean;
+  editable: boolean;
+}
+
+export interface RevisionIntento {
+  intentoId: string;
+  examenId: string;
+  tituloExamen: string;
+  estudianteId: string;
+  estudianteNombre: string;
+  estudianteEmail: string;
+  numeroIntento: number;
+  estado: EstadoIntento;
+  entregadoEn: string | null;
+  puntajeTotal: number | null;
+  puntajeMaximo: number | null;
+  corregidoEn: string | null;
+  cantidadPendientes: number;
+  preguntas: PreguntaRevision[];
+}
+
+export interface CalificacionManual {
+  idExamenVersionPregunta: string;
+  puntosObtenidos: number;
+}
+
+export interface RevisionGuardada {
+  intentoId: string;
+  estado: EstadoIntento;
+  puntajeTotal: number | null;
+  puntajeMaximo: number | null;
+  corregidoEn: string | null;
+}
