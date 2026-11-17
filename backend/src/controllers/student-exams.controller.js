@@ -34,6 +34,15 @@ class StudentExamsController {
         }
     }
 
+    async startAttempt(req, res) {
+        try {
+            const { attempt, creado } = await studentExamsService.startAttempt(req.params.id, req.user);
+            res.status(creado ? 201 : 200).json(attempt);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
     async getAttempt(req, res) {
         try {
             const intento = await studentExamsService.getAttempt(req.params.id, req.user);

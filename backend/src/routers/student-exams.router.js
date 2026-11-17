@@ -9,5 +9,6 @@ const soloAlumno = [authenticate, authorize('STUDENT')];
 
 router.get('/available', soloAlumno, (req, res) => controller.listAvailable(req, res));
 router.get('/:id/student', soloAlumno, (req, res) => controller.getDetail(req, res));
+router.post('/:id/attempts', soloAlumno, (req, res) => controller.startAttempt(req, res));
 
 module.exports = router;

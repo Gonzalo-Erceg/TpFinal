@@ -46,6 +46,11 @@ function estaVencido(deadlineAt) {
     return !isNaN(fecha.getTime()) && fecha.getTime() <= Date.now();
 }
 
+function esErrorDuplicado(error) {
+    return ERRORES_DUPLICADO.includes(error?.number) ||
+        ERRORES_DUPLICADO.includes(error?.originalError?.info?.number);
+}
+
 function resultadosLiberados(attempt) {
     if (attempt.ResultsReleasedAt) {
         return true;
@@ -157,6 +162,18 @@ function aRespuestas(rows) {
     }
 
     return [...respuestas.values()];
+}
+
+function aIntentoIniciado(row) {
+    return {
+        attemptId: row.Id,
+        examId: row.ExamId,
+        examVersionId: row.ExamVersionId,
+        attemptNumber: row.ExamAttemptNumber,
+        status: row.Status,
+        startedAt: aIso(row.StartedAt),
+        deadlineAt: aIso(row.DeadlineAt),
+    };
 }
 
 function aIntento(row, respuestas = null) {
@@ -383,6 +400,86 @@ class StudentExamsService {
             questions: aPreguntas(preguntas),
             answers: aRespuestas(respuestas),
         };
+    }
+
+    async startAttempt(examId, user) {
+        if (!esGuid(examId)) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        for (let intento = 0; intento < 2; intento++) {
+            try {
+                return await this.iniciarIntento(examId, user);
+            } catch (error) {
+                if (!esErrorDuplicado(error)) {
+                    throw error;
+                }
+
+                if (intento === 0) {
+                    continue;
+                }
+
+                throw new AuthError('No se pudo iniciar el intento, intentá nuevamente', 409);
+            }
+        }
+    }
+
+    async iniciarIntento(examId, user) {
+        return studentExamsRepository.withTransaction(async (transaction) => {
+            const acceso = await examAccessService.obtenerExamenAccesible(
+                user.id,
+                examId,
+                { transaction, forUpdate: true }
+            );
+
+            if (!acceso) {
+                throw new AuthError('El examen no existe o no está disponible', 404);
+            }
+
+            await studentExamsRepository.expireOverdueExamAttempts(user.id, examId, transaction);
+
+            const enCurso = await studentExamsRepository.findInProgressAttempt(
+                user.id,
+                examId,
+                transaction,
+                true
+            );
+
+            if (enCurso) {
+                return { attempt: aIntentoIniciado(enCurso), creado: false };
+            }
+
+            const contexto = await studentExamsRepository.getStartContext(
+                user.id,
+                examId,
+                acceso.PublishedVersionId,
+                acceso.AttemptsScope,
+                transaction
+            );
+
+            const usados = Number(contexto?.AttemptsUsed ?? 0);
+
+            if (acceso.MaxAttempts !== null && acceso.MaxAttempts !== undefined && usados >= acceso.MaxAttempts) {
+                throw new AuthError('Alcanzaste el máximo de intentos para este examen', 409);
+            }
+
+            const deadlineAt = await studentExamsRepository.calculateDeadline(examId, transaction);
+
+            if (!deadlineAt) {
+                throw new AuthError('El examen no tiene duración ni fecha de cierre configurada', 409);
+            }
+
+            const attempt = await studentExamsRepository.createAttempt({
+                examId,
+                examVersionId: acceso.PublishedVersionId,
+                studentId: user.id,
+                examAttemptNumber: Number(contexto.NextExamAttemptNumber),
+                versionAttemptNumber: Number(contexto.NextVersionAttemptNumber),
+                deadlineAt,
+            }, transaction);
+
+            return { attempt: aIntentoIniciado(attempt), creado: true };
+        });
     }
 
     async getAttempt(attemptId, user) {

@@ -102,6 +102,24 @@ class StudentExamsRepository {
         return result.recordset[0] ?? null;
     }
 
+    async expireOverdueExamAttempts(studentId, examId, transaction = null) {
+        const request = await requestFor(transaction);
+
+        await request
+            .input('studentId', sql.UniqueIdentifier, studentId)
+            .input('examId', sql.UniqueIdentifier, examId)
+            .query(`
+                UPDATE ExamAttempts
+                SET Status = 'SUBMITTED',
+                    SubmittedAt = DeadlineAt,
+                    IsAutoSubmitted = 1
+                WHERE StudentId = @studentId
+                  AND ExamId = @examId
+                  AND Status = 'IN_PROGRESS'
+                  AND DeadlineAt <= SYSUTCDATETIME()
+            `);
+    }
+
     async expireAttempt(attemptId) {
         const db = await pool;
 
@@ -122,6 +140,118 @@ class StudentExamsRepository {
             `);
 
         return result.recordset[0] ?? null;
+    }
+
+    async getStartContext(studentId, examId, examVersionId, attemptsScope, transaction = null) {
+        const request = await requestFor(transaction);
+
+        const result = await request
+            .input('studentId', sql.UniqueIdentifier, studentId)
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('examVersionId', sql.UniqueIdentifier, examVersionId)
+            .input('attemptsScope', sql.NVarChar(10), attemptsScope)
+            .query(`
+                SELECT
+                    (
+                        SELECT COUNT(*)
+                        FROM ExamAttempts a WITH (UPDLOCK, HOLDLOCK)
+                        WHERE a.StudentId = @studentId
+                          AND a.Status <> 'CANCELLED'
+                          AND (
+                              (@attemptsScope = 'EXAM' AND a.ExamId = @examId)
+                              OR (@attemptsScope = 'VERSION' AND a.ExamVersionId = @examVersionId)
+                          )
+                    ) AS AttemptsUsed,
+                    (
+                        SELECT ISNULL(MAX(a.ExamAttemptNumber), 0) + 1
+                        FROM ExamAttempts a WITH (UPDLOCK, HOLDLOCK)
+                        WHERE a.StudentId = @studentId
+                          AND a.ExamId = @examId
+                    ) AS NextExamAttemptNumber,
+                    (
+                        SELECT ISNULL(MAX(a.VersionAttemptNumber), 0) + 1
+                        FROM ExamAttempts a WITH (UPDLOCK, HOLDLOCK)
+                        WHERE a.StudentId = @studentId
+                          AND a.ExamVersionId = @examVersionId
+                    ) AS NextVersionAttemptNumber
+            `);
+
+        return result.recordset[0];
+    }
+
+    async calculateDeadline(examId, transaction = null) {
+        const request = await requestFor(transaction);
+
+        const result = await request
+            .input('examId', sql.UniqueIdentifier, examId)
+            .query(`
+                SELECT
+                    CASE
+                        WHEN DurationMinutes IS NOT NULL AND ClosesAt IS NOT NULL THEN
+                            CASE
+                                WHEN DATEADD(MINUTE, DurationMinutes, SYSUTCDATETIME()) < ClosesAt
+                                    THEN DATEADD(MINUTE, DurationMinutes, SYSUTCDATETIME())
+                                ELSE ClosesAt
+                            END
+                        WHEN DurationMinutes IS NOT NULL THEN
+                            DATEADD(MINUTE, DurationMinutes, SYSUTCDATETIME())
+                        WHEN ClosesAt IS NOT NULL THEN
+                            ClosesAt
+                        ELSE NULL
+                    END AS DeadlineAt
+                FROM Exams
+                WHERE Id = @examId
+            `);
+
+        return result.recordset[0]?.DeadlineAt ?? null;
+    }
+
+    async createAttempt(data, transaction) {
+        const request = new sql.Request(transaction);
+
+        const result = await request
+            .input('examId', sql.UniqueIdentifier, data.examId)
+            .input('examVersionId', sql.UniqueIdentifier, data.examVersionId)
+            .input('studentId', sql.UniqueIdentifier, data.studentId)
+            .input('examAttemptNumber', sql.Int, data.examAttemptNumber)
+            .input('versionAttemptNumber', sql.Int, data.versionAttemptNumber)
+            .input('deadlineAt', sql.DateTime2, data.deadlineAt)
+            .query(`
+                INSERT INTO ExamAttempts (
+                    ExamId,
+                    ExamVersionId,
+                    StudentId,
+                    ExamAttemptNumber,
+                    VersionAttemptNumber,
+                    Status,
+                    StartedAt,
+                    DeadlineAt
+                )
+                OUTPUT
+                    INSERTED.Id,
+                    INSERTED.ExamId,
+                    INSERTED.ExamVersionId,
+                    INSERTED.ExamAttemptNumber,
+                    INSERTED.VersionAttemptNumber,
+                    INSERTED.Status,
+                    INSERTED.StartedAt,
+                    INSERTED.DeadlineAt,
+                    INSERTED.SubmittedAt,
+                    INSERTED.TotalScore,
+                    INSERTED.MaxScore
+                VALUES (
+                    @examId,
+                    @examVersionId,
+                    @studentId,
+                    @examAttemptNumber,
+                    @versionAttemptNumber,
+                    'IN_PROGRESS',
+                    SYSUTCDATETIME(),
+                    @deadlineAt
+                )
+            `);
+
+        return result.recordset[0];
     }
 
     async findQuestionsForVersion(examVersionId) {
