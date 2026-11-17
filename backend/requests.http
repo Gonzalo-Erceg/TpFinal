@@ -1,3 +1,17 @@
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+    "firstName": "Gonzalo",
+    "lastName": "Erceg",
+    "email": "gonzalo@example.com",
+    "password": "password123",
+      "role": "TEACHER"
+}
+
+
+
+### Login
 POST http://localhost:3000/auth/login
 Content-Type: application/json
 
@@ -49,3 +63,50 @@ Content-Type: application/json
 ### Cerrar
 POST http://localhost:3000/exams/EXAM_ID/close
 Authorization: Bearer TOKEN
+
+### Alumno: exámenes disponibles
+GET http://localhost:3000/exams/available
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: detalle del examen (requiere intento en curso)
+GET http://localhost:3000/exams/EXAM_ID/student
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: estado del intento y respuestas guardadas
+GET http://localhost:3000/attempts/ATTEMPT_ID
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: guardar respuesta de opción única
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "optionId": "OPTION_ID"
+}
+
+### Alumno: guardar respuesta de opción múltiple
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "optionIds": ["OPTION_ID_1", "OPTION_ID_2"]
+}
+
+### Alumno: guardar respuesta de texto
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "text": "Una interfaz HTTP"
+}
+
+### Alumno: entregar intento
+POST http://localhost:3000/attempts/ATTEMPT_ID/submit
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: resultado (si fue corregido y liberado)
+GET http://localhost:3000/attempts/ATTEMPT_ID/result
+Authorization: Bearer STUDENT_TOKEN
