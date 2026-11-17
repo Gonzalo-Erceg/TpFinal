@@ -1,10 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ExamenesService } from './exams.service';
 import { PreguntaRevision, RevisionIntento } from './exam.model';
 import { EstadoIntento } from '../exam/exam.model';
 import { mensajeDeError } from '../core/api/api-error';
+import { BackLink } from '../shared/back-link/back-link';
 
 interface FilaRevision {
   pregunta: PreguntaRevision;
@@ -13,7 +14,7 @@ interface FilaRevision {
 
 @Component({
   selector: 'app-revision-intento',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, BackLink],
   templateUrl: './attempt-review.html',
   styleUrl: './attempt-review.scss',
 })

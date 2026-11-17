@@ -179,24 +179,6 @@
   margin: 10px 0 0;
 }
 
-.navegacion-docente {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-
-  a {
-    color: var(--boton-fondo);
-    font-size: 14px;
-    font-weight: 700;
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
-
 .boton-principal {
   border: 0;
   border-radius: 12px;

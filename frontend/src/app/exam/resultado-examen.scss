@@ -35,17 +35,9 @@
   padding: 28px clamp(20px, 4vw, 56px) 56px;
 }
 
-.volver {
-  display: inline-block;
+app-back-link {
+  display: block;
   margin-bottom: 24px;
-  color: var(--boton-fondo);
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 .encabezado {

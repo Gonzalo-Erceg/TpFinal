@@ -3,9 +3,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { BackLink } from '../../shared/back-link/back-link';
 @Component({
   selector: 'app-inicio-sesion',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BackLink],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

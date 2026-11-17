@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, forkJoin, of, switchMap } from 'rxjs';
 import { ExamenesService } from './exams.service';
 import { DatosExamen, EstadoExamen, ExamenDetalle, ModoLiberacion, PreguntaSeleccionada } from './exam.model';
@@ -9,6 +9,7 @@ import { PreguntasService } from '../questions/questions.service';
 import { GruposService } from '../groups/groups.service';
 import { GrupoDelProfesor } from '../groups/group.model';
 import { mensajeDeError } from '../core/api/api-error';
+import { BackLink } from '../shared/back-link/back-link';
 
 function aDatetimeLocal(iso: string | null): string {
   if (!iso) {
@@ -39,7 +40,7 @@ function aIso(datetimeLocal: string): string | null {
 
 @Component({
   selector: 'app-formulario-examen',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, BackLink],
   templateUrl: './exam-form.html',
   styleUrl: './exam-form.scss',
 })

@@ -5,10 +5,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExamenService } from './exam.service';
 import { ResultadoExamen, RespuestaResultado, TipoPregunta } from './exam.model';
 import { mensajeDeError } from '../core/api/api-error';
+import { BackLink } from '../shared/back-link/back-link';
 
 @Component({
   selector: 'app-resultado-examen',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, BackLink],
   templateUrl: './resultado-examen.html',
   styleUrl: './resultado-examen.scss',
 })

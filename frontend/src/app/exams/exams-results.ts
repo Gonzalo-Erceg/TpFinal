@@ -6,10 +6,11 @@ import { ExamenesService } from './exams.service';
 import { EstadoExamen, ExamenDetalle, IntentoExamenResumen, ModoLiberacion } from './exam.model';
 import { EstadoIntento } from '../exam/exam.model';
 import { mensajeDeError } from '../core/api/api-error';
+import { BackLink } from '../shared/back-link/back-link';
 
 @Component({
   selector: 'app-resultados-examen',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, BackLink],
   templateUrl: './exams-results.html',
   styleUrl: './exams-results.scss',
 })

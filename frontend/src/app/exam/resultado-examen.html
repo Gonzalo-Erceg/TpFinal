@@ -15,7 +15,7 @@
       <a class="boton-principal" routerLink="/examenes">Volver a mis exámenes</a>
     </section>
   } @else if (resultado(); as r) {
-    <a class="volver" routerLink="/examenes">← Volver a mis exámenes</a>
+    <app-back-link destino="/examenes" etiqueta="Volver a mis exámenes" />
 
     <header class="encabezado">
       <div>

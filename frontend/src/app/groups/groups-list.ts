@@ -1,6 +1,5 @@
 import { Component, PLATFORM_ID, computed, inject, OnInit, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { GruposService } from './groups.service';
 import { EstadoMembresia, Grupo } from './group.model';
 import { DialogoUnirse } from './join-dialog';
@@ -9,7 +8,7 @@ type Filtro = 'TODOS' | EstadoMembresia;
 
 @Component({
   selector: 'app-lista-grupos',
-  imports: [DialogoUnirse, RouterLink],
+  imports: [DialogoUnirse],
   templateUrl: './groups-list.html',
   styleUrl: './groups-list.scss',
   host: { '[class.nocturno]': 'modoNocturno()' },
@@ -17,9 +16,6 @@ type Filtro = 'TODOS' | EstadoMembresia;
 export class ListaGrupos implements OnInit {
   private gruposService = inject(GruposService);
   private esNavegador = isPlatformBrowser(inject(PLATFORM_ID));
-
-  rutaInicio = '/';
-  rutaPerfil = '/perfil';
 
   grupos = signal<Grupo[]>([]);
   cargando = signal(true);

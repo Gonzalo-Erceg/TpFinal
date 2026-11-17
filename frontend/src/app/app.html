@@ -1,1 +1,47 @@
-<router-outlet />
+<a class="saltar-contenido" href="#contenido">Saltar al contenido</a>
+
+@if (mostrarShell()) {
+  <header class="barra-superior" role="banner">
+    <nav class="barra" aria-label="Navegación principal">
+      <a class="marca" [routerLink]="inicio()" [attr.aria-label]="'Ir al inicio · ' + rolEtiqueta()">
+        <img src="logo.png" alt="Logo de la plataforma" />
+        <span>Plataforma de exámenes</span>
+      </a>
+
+      <div class="enlaces">
+        @if (esAlumno()) {
+          <a routerLink="/grupos" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Mis grupos</a>
+          <a routerLink="/examenes" routerLinkActive="activo">Mis exámenes</a>
+        } @else if (esDocente()) {
+          <a routerLink="/profesor" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Mis grupos</a>
+          <a routerLink="/profesor/examenes" routerLinkActive="activo">Exámenes</a>
+          <a routerLink="/preguntas" routerLinkActive="activo">Banco de preguntas</a>
+        }
+      </div>
+
+      <div class="acciones">
+        <div class="usuario" [attr.aria-label]="nombre() + ' · ' + rolEtiqueta()">
+          <span class="avatar" aria-hidden="true">{{ iniciales() }}</span>
+          <span class="datos">
+            <strong>{{ nombre() }}</strong>
+            <small>{{ rolEtiqueta() }}</small>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="cerrar-sesion"
+          (click)="cerrarSesion()"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+        >
+          Salir
+        </button>
+      </div>
+    </nav>
+  </header>
+}
+
+<div id="contenido" class="app-contenido" [class.con-barra]="mostrarShell()" tabindex="-1">
+  <router-outlet />
+</div>

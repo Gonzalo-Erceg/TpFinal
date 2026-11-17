@@ -1,11 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { PreguntasService } from './questions.service';
 import { TipoPregunta, DatosPregunta, OpcionNueva, Pregunta } from './question.model';
+import { BackLink } from '../shared/back-link/back-link';
 
 @Component({
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, BackLink],
   selector: 'app-formulario-pregunta',
   styleUrl: './question-form.scss',
   templateUrl: './question-form.html',

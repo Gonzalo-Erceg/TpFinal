@@ -5,6 +5,7 @@ import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validatio
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { RolUsuario } from '../auth.model';
+import { BackLink } from '../../shared/back-link/back-link';
 
 const REQUISITOS_CONTRASENA = [
   { texto: 'Al menos 8 caracteres', cumple: (valor: string) => valor.length >= 8 },
@@ -27,7 +28,7 @@ type CampoRegistro = 'nombre' | 'apellido' | 'email' | 'contrasena' | 'confirmac
 
 @Component({
   selector: 'app-registro',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BackLink],
   templateUrl: './register.html',
   styleUrls: ['../login/login.scss', './register.scss'],
 })

@@ -1,7 +1,8 @@
 <main class="pagina">
-  <a class="volver" [routerLink]="['/profesor/examenes', examenId, 'resultados']">
-    ← Volver a resultados
-  </a>
+  <app-back-link
+    [destino]="['/profesor/examenes', examenId, 'resultados']"
+    etiqueta="Volver a resultados"
+  />
 
   @if (cargando()) {
     <p class="aviso">Cargando corrección...</p>

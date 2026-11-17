@@ -1,14 +1,14 @@
 <main class="pagina">
-  <nav class="barra" aria-label="Navegación principal">
-    <a class="boton-barra" [routerLink]="rutaPerfil">
-      <span class="avatar" aria-hidden="true">ES</span>
-      <span class="boton-texto"><strong>Estudiante</strong><small>Mi perfil</small></span>
-    </a>
+  <header class="encabezado">
+    <div>
+      <h1 class="titulo">Mis grupos</h1>
+      <p class="subtitulo">Consultá tus grupos y el estado de cada solicitud.</p>
+    </div>
 
-    <div class="barra-derecha">
+    <div class="encabezado-acciones">
       <button
         type="button"
-        class="boton-barra boton-icono"
+        class="boton-tema"
         (click)="alternarTema()"
         [attr.aria-pressed]="modoNocturno()"
         [attr.aria-label]="modoNocturno() ? 'Activar modo claro' : 'Activar modo nocturno'"
@@ -17,31 +17,10 @@
         <span aria-hidden="true">{{ modoNocturno() ? '☀' : '☾' }}</span>
       </button>
 
-      <a class="boton-barra" routerLink="/examenes">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
-          <path d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2z" />
-        </svg>
-        Exámenes
-      </a>
-
-      <a class="boton-barra" [routerLink]="rutaInicio">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
-          <path d="m3 10 9-7 9 7v10h-7v-6h-4v6H3z" />
-        </svg>
-        Inicio
-      </a>
+      <button type="button" class="boton-unirme" (click)="abrirDialogo()">
+        <span class="mas" aria-hidden="true">+</span> Unirme con código
+      </button>
     </div>
-  </nav>
-
-  <header class="encabezado">
-    <div>
-      <h1 class="titulo">Mis grupos</h1>
-      <p class="subtitulo">Consultá tus grupos y el estado de cada solicitud.</p>
-    </div>
-
-    <button type="button" class="boton-unirme" (click)="abrirDialogo()">
-      <span class="mas" aria-hidden="true">+</span> Unirme con código
-    </button>
   </header>
 
   @if (mensajeExito()) {
