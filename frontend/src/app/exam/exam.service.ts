@@ -5,7 +5,6 @@ import { Examen, IntentoExamen, Respuesta } from './exam.model';
 
 const DURACION_DE_PRUEBA = 30;
 
-// En true la entrega se simula. En false se envía a la API (todavía no está conectada)
 const USAR_DATOS_DE_PRUEBA = true;
 
 @Injectable({ providedIn: 'root' })
@@ -79,19 +78,16 @@ export class ExamenService {
     ],
   };
 
-  // Datos simulados: cuando exista el backend se reemplaza por la llamada a la API
   obtenerExamen(): Observable<Examen> {
     return of(this.examenDePrueba).pipe(delay(500));
   }
 
-  // Simula que el servidor tarda casi un segundo en guardar la respuesta
   guardarRespuesta(idPregunta: number, valor: Respuesta): Promise<void> {
     return new Promise((resolve) => {
       setTimeout(() => resolve(), 800);
     });
   }
 
-  // El tiempo empieza a correr recién acá, no mientras el alumno lee las instrucciones
   iniciarIntento(idExamen: number): Promise<IntentoExamen> {
     if (USAR_DATOS_DE_PRUEBA) {
       return new Promise((resolve) => {
@@ -102,7 +98,6 @@ export class ExamenService {
       });
     }
 
-    // Supuesto: POST /exams/:id/attempts devuelve { deadlineAt }
     return Promise.reject(new Error(`Falta conectar POST /exams/${idExamen}/attempts`));
   }
 
@@ -113,7 +108,6 @@ export class ExamenService {
       });
     }
 
-    // Así lo esperaría el backend (supuesto): POST /exams/:id/submit con las respuestas en inglés
     const cuerpo = {
       answers: Object.entries(respuestas).map(([idPregunta, valor]) => ({
         questionId: Number(idPregunta),

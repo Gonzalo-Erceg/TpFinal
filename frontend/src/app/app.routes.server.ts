@@ -10,7 +10,6 @@ export const serverRoutes: ServerRoute[] = [
         renderMode: RenderMode.Client
     },
 
-    // Estudiantes
     {
         path: 'grupos',
         renderMode: RenderMode.Client
@@ -20,7 +19,6 @@ export const serverRoutes: ServerRoute[] = [
         renderMode: RenderMode.Client
     },
 
-    // Docentes
     {
         path: 'profesor',
         renderMode: RenderMode.Client

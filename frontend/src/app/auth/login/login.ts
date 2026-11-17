@@ -15,7 +15,6 @@ export class InicioSesion {
 
   private ruta = inject(ActivatedRoute);
 
-  // Viene del registro: /login?registrado=si
   registroExitoso = this.ruta.snapshot.queryParamMap.get('registrado') === 'si';
 
   formulario = new FormGroup({
@@ -43,7 +42,7 @@ export class InicioSesion {
     this.autenticacion.login(email, contrasena).subscribe({
       next: (respuesta) => {
         this.cargando.set(false);
-        
+
         const rutasPorRol = {
           STUDENT: '/grupos',
           TEACHER: '/profesor',

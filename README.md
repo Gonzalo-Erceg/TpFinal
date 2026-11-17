@@ -125,6 +125,10 @@ Los siguientes comandos están definidos en el `package.json` raíz:
 | `npm run dev:back`  | Ejecuta el backend en modo desarrollo.            |
 | `npm run dev:front` | Ejecuta el frontend.                              |
 
+## Documentación
+
+- [Contrato de exámenes e intentos](docs/api-exams.md): estados, DTOs, endpoints y reglas de acceso del flujo de exámenes.
+
 ## Base de datos
 
 El proyecto utiliza Microsoft SQL Server como motor de base de datos.
@@ -137,6 +141,30 @@ El contenedor Docker permite que todos los integrantes del equipo trabajen con e
 - La configuración de conexión se encuentra en `.env`.
 - Las tablas deben crearse mediante las migraciones o scripts SQL del proyecto.
 - Los datos locales no se comparten automáticamente entre integrantes.
+
+### Migraciones
+
+Los archivos de `db/migrations` se aplican en orden mediante el servicio `sqlserver-init`, que ejecuta `db/migrate.sh`.
+
+- En una base nueva se aplica `001_schema.sql` y luego las migraciones pendientes.
+- En una base existente se registra `001_schema.sql` como aplicada y se ejecutan solamente las migraciones nuevas.
+- Cada migración aplicada queda registrada en `dbo.SchemaMigrations`, por lo que el proceso es idempotente.
+
+Para volver a ejecutar las migraciones pendientes sin recrear los datos:
+
+```bash
+docker compose up sqlserver-init
+```
+
+Para detectar cambios de esquema, revisar `db/migrations` y las migraciones registradas:
+
+```bash
+docker compose exec sqlserver bash -lc '
+  /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa \
+    -P "$MSSQL_SA_PASSWORD" -d ExamPlatform \
+    -Q "SELECT MigrationId, AppliedAt FROM dbo.SchemaMigrations ORDER BY MigrationId"
+'
+```
 
 Para detener SQL Server:
 

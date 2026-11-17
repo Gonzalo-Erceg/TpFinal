@@ -2,10 +2,8 @@ const ExamsRepository = require('../repositories/exams.repository');
 const AuthError = require('../utils/auth-error');
 
 const examsRepository = new ExamsRepository();
-// Formato de un GUID (ej: DD2772C9-03F9-4EBB-870A-59CFEAADDB5F)
 const FORMATO_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Valida título, descripción, fechas, duración e intentos del examen
 function validarDatosExamen(data) {
     const { title, description, opensAt, closesAt, durationMinutes, maxAttempts } = data;
 
@@ -86,7 +84,6 @@ class ExamsService {
         return examsRepository.findByTeacher(user.id);
     }
 
-    // Edita un examen propio en borrador y reemplaza sus preguntas
     async update(examId, data, user) {
         if (!FORMATO_GUID.test(examId)) {
             throw new AuthError('El examen no existe', 404);

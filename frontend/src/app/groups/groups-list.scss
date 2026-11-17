@@ -1,5 +1,4 @@
 :host {
-  // Colores neutros
   --bg: #f8f7f5;
   --white: #fff;
   --ink: #242332;
@@ -14,19 +13,16 @@
   --avatar-fondo: #e6e4f6;
   --avatar-texto: #6654ae;
 
-  // Verde: activo
   --ok-fondo: #e3f3e9;
   --ok-texto: #1f6b47;
   --ok-borde: #bfe0cd;
   --ok-acento: #34856b;
 
-  // Amarillo: pendiente
   --pendiente-fondo: #fff4d1;
   --pendiente-texto: #8a6100;
   --pendiente-borde: #f0dc9b;
   --pendiente-acento: #e5ae2b;
 
-  // Rojo: rechazado
   --error-fondo: #fbe4e7;
   --error-texto: #a3303f;
   --error-borde: #f1c2c8;
@@ -41,7 +37,6 @@
     var(--fondo-pagina);
 }
 
-// Modo nocturno: solo se redefinen las variables, el resto del archivo no cambia
 :host(.nocturno) {
   color-scheme: dark;
 
@@ -75,7 +70,6 @@
   --error-acento: #e0677a;
 }
 
-// Cada elemento con data-estado toma los colores de su estado
 [data-estado='ACTIVE'] {
   --acento-estado: var(--ok-acento);
   --fondo-estado: var(--ok-fondo);
@@ -103,7 +97,6 @@
   padding: 28px clamp(20px, 4vw, 56px) 56px;
 }
 
-// Barra superior
 .barra {
   display: flex;
   justify-content: space-between;
@@ -255,7 +248,6 @@
   cursor: pointer;
   transition: border-color 0.18s, background 0.18s;
 
-  // Puntito de color del estado (el botón "Todos" no lo tiene)
   &[data-estado]::before {
     content: '';
     width: 9px;

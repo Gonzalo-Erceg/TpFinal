@@ -1,7 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 import { Pregunta, Respuesta } from './exam.model';
 
-// Límite supuesto para respuestas cortas, confirmar con el equipo
 export const LIMITE_CARACTERES = 300;
 
 @Component({

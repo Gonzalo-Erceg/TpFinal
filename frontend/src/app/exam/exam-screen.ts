@@ -16,9 +16,7 @@ import { RespuestaChoice } from './choice-answer';
 import { RespuestaTrueFalse } from './true-false-answer';
 import { LIMITE_CARACTERES, RespuestaShortText } from './short-text-answer';
 
-// Margen por si el alumno apretó Esc sin querer
 const SEGUNDOS_PARA_VOLVER = 10;
-// Tiempo mínimo que se ve el aviso de entrega automática, para que se llegue a leer
 const MINIMO_AVISO_ENTREGA_MS = 3000;
 
 @Component({
@@ -45,12 +43,10 @@ export class PantallaExamen implements OnInit, OnDestroy {
   errorEntrega = signal<string | null>(null);
   errorVolver = signal<string | null>(null);
   salioDePantallaCompleta = signal(false);
-  // Momento (en ms) en que se termina el margen para volver a pantalla completa
   limiteParaVolver = signal<number | null>(null);
 
   segundosParaVolverTotal = SEGUNDOS_PARA_VOLVER;
 
-  // Igual que el timer del examen: se calcula contra el reloj, no se descuenta
   segundosParaVolver = computed(() => {
     const limite = this.limiteParaVolver();
     return limite === null ? 0 : Math.max(0, Math.ceil((limite - this.ahora()) / 1000));
@@ -104,7 +100,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     (this.examen()?.preguntas ?? []).reduce((total, pregunta) => total + pregunta.puntaje, 0),
   );
 
-  // Solo los tipos que aparecen en este examen, sin repetir
   tiposDelExamen = computed(() => {
     const tipos = (this.examen()?.preguntas ?? []).map((pregunta) => pregunta.tipo);
     return tipos.filter((tipo, indice) => tipos.indexOf(tipo) === indice);
@@ -154,7 +149,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     this.documento.removeEventListener('fullscreenchange', this.alCambiarPantallaCompleta);
   }
 
-  // No descuenta de a un segundo: en cada vuelta vuelve a mirar el reloj, así un atraso del intervalo no se acumula
   private iniciarTemporizador(): void {
     if (!isPlatformBrowser(this.plataforma)) {
       return;
@@ -170,7 +164,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
       if (this.segundosRestantes() === 0 && !afuera) {
         this.detenerTemporizador();
       }
-      // Mira el reloj 4 veces por segundo para que el número cambie justo a tiempo y no saltee ninguno
     }, 250);
   }
 
@@ -197,7 +190,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     });
   }
 
-  // El navegador solo deja entrar a pantalla completa como respuesta a un clic, por eso va en el botón Comenzar
   async comenzarExamen(): Promise<void> {
     const examen = this.examen();
     if (!examen || this.estadoExamen() !== 'instrucciones') {
@@ -216,7 +208,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
     try {
       const intento = await this.examenService.iniciarIntento(examen.id);
-      // Si salió de pantalla completa mientras se iniciaba, no arranca
       if (!this.documento.fullscreenElement) {
         this.estadoExamen.set('instrucciones');
         this.errorInicio.set('Saliste de la pantalla completa antes de empezar. Probá de nuevo.');
@@ -233,7 +224,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
   }
 
-  // Es una función flecha guardada en una propiedad para poder sacar el mismo listener después
   private alCambiarPantallaCompleta = (): void => {
     const enPantallaCompleta = this.documento.fullscreenElement !== null;
 
@@ -249,7 +239,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
   };
 
-  // Tiene que ser un clic del alumno: el navegador no deja volver a pantalla completa solo
   async volverAPantallaCompleta(): Promise<void> {
     this.errorVolver.set(null);
     try {
@@ -292,8 +281,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
     this.respuestas.update((actuales) => ({ ...actuales, [pregunta.id]: valor }));
 
-    // Si el alumno cambia la respuesta antes de que termine el guardado anterior,
-    // solo el último guardado puede mostrar "Guardado"
     this.numeroGuardado++;
     const numeroDeEsteGuardado = this.numeroGuardado;
     this.estadoGuardado.set('guardando');
@@ -305,7 +292,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
   }
 
-  // El botón Entregar nunca envía: solo abre la confirmación
   abrirConfirmacion(): void {
     this.errorEntrega.set(null);
     this.dialogoEntrega()?.nativeElement.showModal();
@@ -318,7 +304,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     this.dialogoEntrega()?.nativeElement.close();
   }
 
-  // Esc cierra el diálogo por defecto; mientras se entrega no lo dejamos cerrar
   alCancelarDialogo(evento: Event): void {
     if (this.estadoExamen() === 'entregando') {
       evento.preventDefault();
@@ -329,7 +314,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     this.entregar();
   }
 
-  // Lo usa la pantalla de "saliste de pantalla completa" si el envío automático falla
   reintentarEntrega(): void {
     this.entregar(true);
   }
@@ -337,7 +321,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
   private async entregar(automatica = false): Promise<void> {
     const examen = this.examen();
     const estado = this.estadoExamen();
-    // Si ya se está entregando (doble clic) o ya se entregó, no se vuelve a enviar
     if (!examen || (estado !== 'respondiendo' && estado !== 'fuera-de-pantalla')) {
       return;
     }
@@ -346,19 +329,16 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
     try {
       const envio = this.examenService.entregarExamen(examen.id, this.respuestas());
-      // En la entrega automática se espera también un mínimo, así el aviso se llega a leer
       const espera = automatica ? this.esperar(MINIMO_AVISO_ENTREGA_MS) : Promise.resolve();
       await Promise.all([envio, espera]);
       this.dialogoEntrega()?.nativeElement.close();
       this.detenerTemporizador();
-      // Primero se saca el listener, así salir de pantalla completa acá no se toma como una salida del alumno
       this.documento.removeEventListener('fullscreenchange', this.alCambiarPantallaCompleta);
       this.salirDePantallaCompleta();
       this.estadoExamen.set('entregado');
     } catch {
       this.estadoExamen.set('respondiendo');
       this.errorEntrega.set('No se pudo entregar el examen. Tus respuestas siguen guardadas, intentá de nuevo.');
-      // Si falló una entrega manual y mientras tanto salió de pantalla completa, no puede seguir respondiendo
       if (!this.documento.fullscreenElement) {
         this.salioDePantallaCompleta.set(true);
       }
@@ -380,7 +360,6 @@ export class PantallaExamen implements OnInit, OnDestroy {
     return String(valor).trim();
   }
 
-  // Un texto con solo espacios no cuenta como respondido, pero false sí es una respuesta válida
   private tieneRespuesta(pregunta: Pregunta): boolean {
     const valor = this.respuestas()[pregunta.id];
     if (typeof valor === 'string') {

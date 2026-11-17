@@ -88,7 +88,6 @@ class ExamsRepository {
         return result.recordset;
     }
 
-    // Busca el examen solo si es del profesor (incluye el estado de su versión)
     async findByIdAndTeacher(examId, teacherId) {
         const db = await pool;
 
@@ -110,7 +109,6 @@ class ExamsRepository {
         return result.recordset[0];
     }
 
-    // Devuelve la última revisión de cada pregunta activa del profesor
     async findLatestRevisions(questionIds, teacherId) {
         if (questionIds.length === 0) {
             return [];
@@ -145,7 +143,6 @@ class ExamsRepository {
         return result.recordset;
     }
 
-    // Actualiza el examen y reemplaza sus preguntas, todo en una transacción
     async update(examId, versionId, data, preguntas) {
         const db = await pool;
         const transaction = new sql.Transaction(db);

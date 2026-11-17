@@ -12,18 +12,15 @@ type Filtro = 'TODOS' | EstadoMembresia;
   imports: [DialogoUnirse, RouterLink],
   templateUrl: './groups-list.html',
   styleUrl: './groups-list.scss',
-  // Agrega la clase "nocturno" al componente cuando el modo nocturno está activo
   host: { '[class.nocturno]': 'modoNocturno()' },
 })
 export class ListaGrupos implements OnInit {
   private gruposService = inject(GruposService);
   private esNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
-  // Destinos de los botones de la barra superior
   rutaInicio = '/';
   rutaPerfil = '/perfil';
 
-  // Estado de la pantalla
   grupos = signal<Grupo[]>([]);
   cargando = signal(true);
   mensajeError = signal<string | null>(null);
@@ -32,21 +29,18 @@ export class ListaGrupos implements OnInit {
   filtro = signal<Filtro>('TODOS');
   modoNocturno = signal(false);
 
-  // Orden en que se muestran: primero los activos, después pendientes y rechazados
   private ordenEstados: Record<EstadoMembresia, number> = { ACTIVE: 0, PENDING: 1, REJECTED: 2 };
 
   gruposOrdenados = computed(() =>
     [...this.grupos()].sort((a, b) => this.ordenEstados[a.estadoMembresia] - this.ordenEstados[b.estadoMembresia]),
   );
 
-  // Los grupos que se ven según el filtro elegido
   gruposFiltrados = computed(() => {
     const filtroActual = this.filtro();
     const lista = this.gruposOrdenados();
     return filtroActual === 'TODOS' ? lista : lista.filter((grupo) => grupo.estadoMembresia === filtroActual);
   });
 
-  // Cantidad de grupos de cada estado, para mostrar en los botones de filtro
   cantidades = computed<Record<Filtro, number>>(() => ({
     TODOS: this.grupos().length,
     ACTIVE: this.contar('ACTIVE'),
@@ -61,8 +55,6 @@ export class ListaGrupos implements OnInit {
     { valor: 'REJECTED', etiqueta: 'Rechazados' },
   ];
 
-  // Texto, símbolo y explicación de cada estado. El símbolo acompaña al color
-  // para que el estado no dependa solo de él.
   etiquetasEstado: Record<EstadoMembresia, string> = {
     ACTIVE: 'Activo',
     PENDING: 'Pendiente',
@@ -114,12 +106,10 @@ export class ListaGrupos implements OnInit {
     const nocturno = !this.modoNocturno();
     this.modoNocturno.set(nocturno);
 
-    // localStorage solo existe en el navegador (no en el servidor del SSR)
     if (this.esNavegador) {
       try {
         localStorage.setItem('aula-theme', nocturno ? 'dark' : 'light');
       } catch {
-        // si el navegador no permite guardar, el cambio igual se aplica
       }
     }
   }
@@ -131,7 +121,6 @@ export class ListaGrupos implements OnInit {
     try {
       this.modoNocturno.set(localStorage.getItem('aula-theme') === 'dark');
     } catch {
-      // sin acceso al almacenamiento: queda el modo claro
     }
   }
 
@@ -144,9 +133,7 @@ export class ListaGrupos implements OnInit {
     this.mostrarDialogo.set(false);
   }
 
-  // Se ejecuta cuando el diálogo avisa que la solicitud se envió bien
   alEnviarSolicitud(grupo: Grupo): void {
-    // Si el grupo ya estaba (por ejemplo, rechazado), se reemplaza para no duplicar la tarjeta
     this.grupos.update((lista) => [...lista.filter((g) => g.id !== grupo.id), grupo]);
     this.mostrarDialogo.set(false);
     this.mensajeExito.set(`Solicitud enviada a "${grupo.materia ?? grupo.nombre}". Queda pendiente hasta que el docente la apruebe.`);

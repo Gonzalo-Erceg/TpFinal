@@ -6,7 +6,6 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { RolUsuario } from '../auth.model';
 
-// El backend solo exige 8 caracteres; letra y número los pedimos desde el front
 const REQUISITOS_CONTRASENA = [
   { texto: 'Al menos 8 caracteres', cumple: (valor: string) => valor.length >= 8 },
   { texto: 'Al menos una letra', cumple: (valor: string) => /\p{L}/u.test(valor) },
@@ -77,12 +76,12 @@ export class Registro {
     const { nombre, apellido, email, contrasena, rol } = this.formulario.getRawValue();
     this.cargando.set(true);
 
-    this.autenticacion.register({ 
-      firstName: nombre.trim(), 
-      lastName: apellido.trim(), 
-      email: email.trim().toLowerCase(), 
-      password: contrasena, 
-      role: rol 
+    this.autenticacion.register({
+      firstName: nombre.trim(),
+      lastName: apellido.trim(),
+      email: email.trim().toLowerCase(),
+      password: contrasena,
+      role: rol
     }).subscribe({
       next: () => {
         this.cargando.set(false);
@@ -98,7 +97,6 @@ export class Registro {
   private mensajeParaError(error: HttpErrorResponse): string {
     switch (error.status) {
       case 400:
-        // El backend manda en message qué dato está mal
         return error.error?.message ?? 'Revisá los datos del formulario.';
       case 409:
         return 'Ya existe una cuenta con ese email. Iniciá sesión o usá otro email.';

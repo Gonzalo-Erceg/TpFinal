@@ -30,7 +30,6 @@ class ExamsController {
         }
     }
 
-    // PUT /exams/:id → edita un examen en borrador
     async update(req, res) {
         try {
             const exam = await examsService.update(req.params.id, req.body, req.user);
