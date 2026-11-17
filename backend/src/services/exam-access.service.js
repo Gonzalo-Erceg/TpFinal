@@ -4,7 +4,7 @@ const { pool } = require('../config/database');
 class ExamAccessService {
 
     async listarExamenesDisponibles(studentId) {
-        return this.findAccessibleExams(studentId, null);
+        return this.findAccessibleExams(studentId, null, { incluirCerradosConIntento: true });
     }
 
     async obtenerExamenAccesible(studentId, examId, options = {}) {
@@ -14,7 +14,12 @@ class ExamAccessService {
     }
 
     async findAccessibleExams(studentId, examId = null, options = {}) {
-        const { transaction = null, forUpdate = false } = options;
+        const {
+            transaction = null,
+            forUpdate = false,
+            incluirCerradosConIntento = false,
+            permitirCerradoEnCurso = false,
+        } = options;
 
         const request = transaction
             ? new sql.Request(transaction)
@@ -22,7 +27,9 @@ class ExamAccessService {
 
         request
             .input('studentId', sql.UniqueIdentifier, studentId)
-            .input('examId', sql.UniqueIdentifier, examId);
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('incluirCerradosConIntento', sql.Bit, incluirCerradosConIntento ? 1 : 0)
+            .input('permitirCerradoEnCurso', sql.Bit, permitirCerradoEnCurso ? 1 : 0);
 
         const lockHint = forUpdate ? 'WITH (UPDLOCK, HOLDLOCK)' : '';
 
@@ -107,10 +114,36 @@ class ExamAccessService {
                   )
                 ORDER BY a.StartedAt DESC
             ) ultimo
-            WHERE e.Status IN ('PUBLISHED', 'SCHEDULED')
-              AND (e.PublishAt IS NULL OR e.PublishAt <= SYSUTCDATETIME())
-              AND (e.OpensAt IS NULL OR e.OpensAt <= SYSUTCDATETIME())
-              AND (e.ClosesAt IS NULL OR e.ClosesAt >= SYSUTCDATETIME())
+            WHERE (
+                    (
+                        e.Status IN ('PUBLISHED', 'SCHEDULED')
+                        AND (e.PublishAt IS NULL OR e.PublishAt <= SYSUTCDATETIME())
+                        AND (e.OpensAt IS NULL OR e.OpensAt <= SYSUTCDATETIME())
+                        AND (e.ClosesAt IS NULL OR e.ClosesAt >= SYSUTCDATETIME())
+                    )
+                    OR (
+                        e.Status = 'CLOSED'
+                        AND @incluirCerradosConIntento = 1
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ExamAttempts a
+                            WHERE a.StudentId = @studentId
+                              AND a.ExamId = e.Id
+                              AND a.Status <> 'CANCELLED'
+                        )
+                    )
+                    OR (
+                        e.Status = 'CLOSED'
+                        AND @permitirCerradoEnCurso = 1
+                        AND EXISTS (
+                            SELECT 1
+                            FROM ExamAttempts a
+                            WHERE a.StudentId = @studentId
+                              AND a.ExamId = e.Id
+                              AND a.Status = 'IN_PROGRESS'
+                        )
+                    )
+                )
               AND (@examId IS NULL OR e.Id = @examId)
               AND EXISTS (
                   SELECT 1

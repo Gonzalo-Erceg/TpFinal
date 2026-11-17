@@ -68,7 +68,7 @@ function aDisponible(row) {
     const tieneDeadline = (row.DurationMinutes !== null && row.DurationMinutes !== undefined) ||
         (row.ClosesAt !== null && row.ClosesAt !== undefined);
     const tieneIntentoEnCurso = Boolean(row.HasInProgress);
-    const puedeIniciar = tieneDeadline &&
+    const puedeIniciar = row.Status !== 'CLOSED' && tieneDeadline &&
         (tieneIntentoEnCurso || maxAttempts === null || attemptsUsed < maxAttempts);
 
     const ultimoEntregado = row.LastAttemptStatus === 'GRADED' && resultadosLiberados({
@@ -344,7 +344,9 @@ class StudentExamsService {
             throw new AuthError('El examen no existe', 404);
         }
 
-        const acceso = await examAccessService.obtenerExamenAccesible(user.id, examId);
+        const acceso = await examAccessService.obtenerExamenAccesible(user.id, examId, {
+            permitirCerradoEnCurso: true,
+        });
 
         if (!acceso) {
             throw new AuthError('El examen no existe o no está disponible', 404);

@@ -526,11 +526,13 @@ WHERE e.Id = @examId
 
 Esta regla debe implementarse una sola vez en `exam-access.service.js` y reutilizarse en todos los endpoints del alumno.
 
-Implementación: `backend/src/services/exam-access.service.js` expone `findAccessibleExams`, usado por `GET /exams/available`, `GET /exams/:id/student`.
+Implementación: `backend/src/services/exam-access.service.js` expone `findAccessibleExams`, usado por `GET /exams/available`, `GET /exams/:id/student`. Las opciones `incluirCerradosConIntento` y `permitirCerradoEnCurso` habilitan las dos excepciones para exámenes cerrados descriptas más abajo.
 
 Notas de comportamiento:
 
 - Un examen `SCHEDULED` con `PublishAt` futuro no aparece; cuando llega `PublishAt`, sí aparece aunque el estado siga siendo `SCHEDULED`.
+- Un examen `CLOSED` vuelve a aparecer en `GET /exams/available` si el alumno tiene algún intento no cancelado, para que pueda ver su resultado aunque la ventana de rendición haya terminado. En ese caso `canStart` siempre es `false`.
+- `GET /exams/:id/student` admite un examen `CLOSED` si el alumno tiene un intento `IN_PROGRESS` iniciado antes del cierre, para que pueda terminarlo.
 - `GET /exams/:id/student` exige un intento `IN_PROGRESS` para no exponer las preguntas antes de que el alumno empiece a rendir. Sin intento responde `409`.
 - Los endpoints de `/attempts/:id` validan pertenencia y estado del intento; no vuelven a exigir la ventana del examen, para que el alumno pueda entregar un intento ya iniciado aunque el docente cierre el examen.
 - Un examen sin `DurationMinutes` ni `ClosesAt` es accesible pero no se puede iniciar (`canStart: false` y `409` al iniciar), porque `ExamAttempts.DeadlineAt` es `NOT NULL` en el esquema actual.
