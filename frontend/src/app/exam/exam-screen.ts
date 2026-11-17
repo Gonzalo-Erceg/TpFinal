@@ -10,37 +10,48 @@ import {
   viewChild,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { ExamenService } from './exam.service';
-import { Examen, Pregunta, Respuesta, TipoPregunta } from './exam.model';
+import { Examen, ExamenDisponible, Pregunta, Respuesta, TipoPregunta } from './exam.model';
+import { mensajeDeError } from '../core/api/api-error';
 import { RespuestaChoice } from './choice-answer';
 import { RespuestaTrueFalse } from './true-false-answer';
-import { LIMITE_CARACTERES, RespuestaShortText } from './short-text-answer';
+import { LIMITE_CARACTERES, LIMITE_DESARROLLO, RespuestaShortText } from './short-text-answer';
 
 const SEGUNDOS_PARA_VOLVER = 10;
 const MINIMO_AVISO_ENTREGA_MS = 3000;
 
 @Component({
   selector: 'app-pantalla-examen',
-  imports: [RespuestaChoice, RespuestaTrueFalse, RespuestaShortText],
+  imports: [RespuestaChoice, RespuestaTrueFalse, RespuestaShortText, RouterLink],
   templateUrl: './exam-screen.html',
   styleUrl: './exam-screen.scss',
 })
 export class PantallaExamen implements OnInit, OnDestroy {
   private examenService = inject(ExamenService);
+  private ruta = inject(ActivatedRoute);
   private plataforma = inject(PLATFORM_ID);
   private documento = inject(DOCUMENT);
   private idIntervalo: ReturnType<typeof setInterval> | null = null;
 
   private numeroGuardado = 0;
+  private idExamen = '';
+  private temporizadoresTexto = new Map<string, ReturnType<typeof setTimeout>>();
+  private respuestasPendientes = new Map<string, { pregunta: Pregunta; valor: Respuesta; numero: number }>();
 
   ahora = signal(Date.now());
+  disponible = signal<ExamenDisponible | null>(null);
+  examen = signal<Examen | null>(null);
+  intentoEnCurso = signal(false);
   fechaLimite = signal<string | null>(null);
-  estadoGuardado = signal<'sin-cambios' | 'guardando' | 'guardado'>('sin-cambios');
+  estadoGuardado = signal<'sin-cambios' | 'guardando' | 'guardado' | 'error'>('sin-cambios');
   estadoExamen = signal<
     'instrucciones' | 'comenzando' | 'respondiendo' | 'fuera-de-pantalla' | 'entregando' | 'entregado'
   >('instrucciones');
   errorInicio = signal<string | null>(null);
   errorEntrega = signal<string | null>(null);
+  errorGuardado = signal<string | null>(null);
   errorVolver = signal<string | null>(null);
   salioDePantallaCompleta = signal(false);
   limiteParaVolver = signal<number | null>(null);
@@ -54,21 +65,48 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
   private dialogoEntrega = viewChild<ElementRef<HTMLDialogElement>>('dialogoEntrega');
 
-  examen = signal<Examen | null>(null);
   cargando = signal(true);
   mensajeError = signal<string | null>(null);
   indiceActual = signal(0);
-  respuestas = signal<Record<number, Respuesta>>({});
+  respuestas = signal<Record<string, Respuesta>>({});
 
   limiteTextoCorto = LIMITE_CARACTERES;
+  limiteDesarrollo = LIMITE_DESARROLLO;
 
   etiquetasTipo: Record<TipoPregunta, string> = {
-    CHOICE: 'Opción múltiple',
+    CHOICE: 'Opción única',
+    MULTIPLE_CHOICE: 'Opción múltiple',
     TRUE_FALSE: 'Verdadero o falso',
     SHORT_TEXT: 'Respuesta corta',
+    ESSAY: 'Desarrollo',
+    NO_SOPORTADO: 'Tipo no disponible',
   };
 
-  totalPreguntas = computed(() => this.examen()?.preguntas.length ?? 0);
+  private tiposSoportados: TipoPregunta[] = ['CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_TEXT'];
+
+  titulo = computed(() => this.examen()?.titulo ?? this.disponible()?.titulo ?? '');
+  grupo = computed(() => this.examen()?.grupo ?? this.disponible()?.grupo ?? null);
+  duracionMinutos = computed(
+    () => this.examen()?.duracionMinutos ?? this.disponible()?.duracionMinutos ?? null,
+  );
+
+  etiquetaDuracion = computed(() => {
+    const duracion = this.duracionMinutos();
+
+    if (duracion !== null) {
+      return `${duracion} min`;
+    }
+
+    if (this.examen()?.cierraEn ?? this.disponible()?.cierraEn) {
+      return 'Hasta el cierre';
+    }
+
+    return 'Sin límite';
+  });
+
+  totalPreguntas = computed(
+    () => this.examen()?.preguntas.length ?? this.disponible()?.cantidadPreguntas ?? 0,
+  );
 
   preguntaActual = computed(() => this.examen()?.preguntas[this.indiceActual()] ?? null);
 
@@ -96,13 +134,40 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
   enInstrucciones = computed(() => this.estadoExamen() === 'instrucciones' || this.estadoExamen() === 'comenzando');
 
-  puntajeTotal = computed(() =>
-    (this.examen()?.preguntas ?? []).reduce((total, pregunta) => total + pregunta.puntaje, 0),
-  );
+  puntajeTotal = computed(() => {
+    const examen = this.examen();
+
+    if (examen) {
+      return examen.preguntas.reduce((total, pregunta) => total + pregunta.puntaje, 0);
+    }
+
+    return this.disponible()?.puntajeTotal ?? 0;
+  });
 
   tiposDelExamen = computed(() => {
     const tipos = (this.examen()?.preguntas ?? []).map((pregunta) => pregunta.tipo);
-    return tipos.filter((tipo, indice) => tipos.indexOf(tipo) === indice);
+
+    if (tipos.length === 0) {
+      return this.tiposSoportados;
+    }
+
+    return tipos.filter((tipo, indice) => tipos.indexOf(tipo) === indice && tipo !== 'NO_SOPORTADO');
+  });
+
+  puedeIniciar = computed(() => this.intentoEnCurso() || (this.disponible()?.puedeIniciar ?? false));
+
+  motivoNoInicia = computed(() => {
+    const disponible = this.disponible();
+
+    if (!disponible || this.puedeIniciar()) {
+      return null;
+    }
+
+    if (disponible.duracionMinutos === null && disponible.cierraEn === null) {
+      return 'El docente no configuró una duración ni una fecha de cierre para este examen.';
+    }
+
+    return 'No te quedan intentos disponibles para este examen.';
   });
 
   segundosRestantes = computed(() => {
@@ -141,12 +206,53 @@ export class PantallaExamen implements OnInit, OnDestroy {
   );
 
   ngOnInit(): void {
-    this.cargarExamen();
+    this.idExamen = this.ruta.snapshot.paramMap.get('id') ?? '';
+    this.cargar();
   }
 
   ngOnDestroy(): void {
     this.detenerTemporizador();
+    for (const temporizador of this.temporizadoresTexto.values()) {
+      clearTimeout(temporizador);
+    }
+    this.temporizadoresTexto.clear();
     this.documento.removeEventListener('fullscreenchange', this.alCambiarPantallaCompleta);
+  }
+
+  async cargar(): Promise<void> {
+    this.cargando.set(true);
+    this.mensajeError.set(null);
+
+    if (!this.idExamen) {
+      this.mensajeError.set('No se indicó qué examen querés rendir.');
+      this.cargando.set(false);
+      return;
+    }
+
+    try {
+      const disponibles = await firstValueFrom(this.examenService.listarDisponibles());
+      const disponible = disponibles.find((examen) => examen.id === this.idExamen) ?? null;
+
+      if (!disponible) {
+        this.mensajeError.set('El examen no existe o no está disponible para vos.');
+        this.cargando.set(false);
+        return;
+      }
+
+      this.disponible.set(disponible);
+
+      const examen = await firstValueFrom(this.examenService.obtenerExamen(this.idExamen));
+
+      if (examen) {
+        this.aplicarExamen(examen);
+        this.intentoEnCurso.set(true);
+      }
+
+      this.cargando.set(false);
+    } catch (error) {
+      this.mensajeError.set(mensajeDeError(error, 'No se pudo cargar el examen. Intentá de nuevo.'));
+      this.cargando.set(false);
+    }
   }
 
   private iniciarTemporizador(): void {
@@ -161,8 +267,9 @@ export class PantallaExamen implements OnInit, OnDestroy {
       if (afuera && this.segundosParaVolver() === 0) {
         this.entregarPorSalida();
       }
-      if (this.segundosRestantes() === 0 && !afuera) {
+      if (this.segundosRestantes() === 0 && !afuera && this.estadoExamen() === 'respondiendo') {
         this.detenerTemporizador();
+        this.entregar(true);
       }
     }, 250);
   }
@@ -174,25 +281,15 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
   }
 
-  cargarExamen(): void {
-    this.cargando.set(true);
-    this.mensajeError.set(null);
-
-    this.examenService.obtenerExamen().subscribe({
-      next: (examen) => {
-        this.examen.set(examen);
-        this.cargando.set(false);
-      },
-      error: () => {
-        this.mensajeError.set('No se pudo cargar el examen. Intentá de nuevo.');
-        this.cargando.set(false);
-      },
-    });
+  private aplicarExamen(examen: Examen): void {
+    this.examen.set({ ...examen, grupo: this.disponible()?.grupo ?? examen.grupo });
+    this.fechaLimite.set(examen.fechaLimite);
+    this.respuestas.set({ ...examen.respuestas });
+    this.indiceActual.set(0);
   }
 
   async comenzarExamen(): Promise<void> {
-    const examen = this.examen();
-    if (!examen || this.estadoExamen() !== 'instrucciones') {
+    if (!this.idExamen || this.estadoExamen() !== 'instrucciones') {
       return;
     }
     this.estadoExamen.set('comenzando');
@@ -207,20 +304,26 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
 
     try {
-      const intento = await this.examenService.iniciarIntento(examen.id);
+      const intento = await firstValueFrom(this.examenService.iniciarIntento(this.idExamen));
+
       if (!this.documento.fullscreenElement) {
         this.estadoExamen.set('instrucciones');
         this.errorInicio.set('Saliste de la pantalla completa antes de empezar. Probá de nuevo.');
         return;
       }
-      this.fechaLimite.set(intento.fechaLimite);
+
+      const examen = await firstValueFrom(this.examenService.obtenerExamenActual(this.idExamen));
+
+      this.aplicarExamen(examen);
+      this.fechaLimite.set(intento.fechaLimite || examen.fechaLimite);
+      this.intentoEnCurso.set(true);
       this.documento.addEventListener('fullscreenchange', this.alCambiarPantallaCompleta);
       this.estadoExamen.set('respondiendo');
       this.iniciarTemporizador();
-    } catch {
+    } catch (error) {
       this.salirDePantallaCompleta();
       this.estadoExamen.set('instrucciones');
-      this.errorInicio.set('No se pudo iniciar el examen. Intentá de nuevo.');
+      this.errorInicio.set(mensajeDeError(error, 'No se pudo iniciar el examen. Intentá de nuevo.'));
     }
   }
 
@@ -276,20 +379,108 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
   async guardarRespuesta(valor: Respuesta): Promise<void> {
     const pregunta = this.preguntaActual();
-    if (!pregunta) {
+    const examen = this.examen();
+
+    if (!pregunta || !examen) {
       return;
     }
+
     this.respuestas.update((actuales) => ({ ...actuales, [pregunta.id]: valor }));
 
     this.numeroGuardado++;
     const numeroDeEsteGuardado = this.numeroGuardado;
+    this.errorGuardado.set(null);
     this.estadoGuardado.set('guardando');
 
-    await this.examenService.guardarRespuesta(pregunta.id, valor);
-
-    if (numeroDeEsteGuardado === this.numeroGuardado) {
-      this.estadoGuardado.set('guardado');
+    if (this.esRespuestaDeTexto(pregunta.tipo)) {
+      this.programarGuardadoDeTexto(pregunta, valor, numeroDeEsteGuardado);
+      return;
     }
+
+    await this.enviarRespuesta(examen.intentoId, pregunta, valor, numeroDeEsteGuardado);
+  }
+
+  private programarGuardadoDeTexto(pregunta: Pregunta, valor: Respuesta, numero: number): void {
+    this.respuestasPendientes.set(pregunta.id, { pregunta, valor, numero });
+
+    const anterior = this.temporizadoresTexto.get(pregunta.id);
+
+    if (anterior) {
+      clearTimeout(anterior);
+    }
+
+    this.temporizadoresTexto.set(
+      pregunta.id,
+      setTimeout(() => {
+        this.temporizadoresTexto.delete(pregunta.id);
+        const examen = this.examen();
+
+        if (examen) {
+          void this.enviarRespuesta(examen.intentoId, pregunta, valor, numero);
+        }
+      }, 500),
+    );
+  }
+
+  private async enviarRespuesta(
+    intentoId: string,
+    pregunta: Pregunta,
+    valor: Respuesta,
+    numero: number,
+  ): Promise<boolean> {
+    if (this.respuestasPendientes.get(pregunta.id)?.numero === numero) {
+      this.respuestasPendientes.delete(pregunta.id);
+    }
+
+    try {
+      await firstValueFrom(this.examenService.guardarRespuesta(intentoId, pregunta, valor));
+
+      if (numero === this.numeroGuardado) {
+        this.estadoGuardado.set('guardado');
+      }
+
+      return true;
+    } catch (error) {
+      if (numero === this.numeroGuardado) {
+        this.estadoGuardado.set('error');
+        this.errorGuardado.set(
+          mensajeDeError(error, 'No se pudo guardar la respuesta. Revisá tu conexión e intentá de nuevo.'),
+        );
+      }
+
+      return false;
+    }
+  }
+
+  private async vaciarRespuestasPendientes(intentoId: string): Promise<void> {
+    for (let vuelta = 0; vuelta < 5 && this.respuestasPendientes.size > 0; vuelta++) {
+      const pendientes = [...this.respuestasPendientes.values()];
+
+      for (const pendiente of pendientes) {
+        const actual = this.respuestasPendientes.get(pendiente.pregunta.id);
+
+        if (actual?.numero !== pendiente.numero) {
+          continue;
+        }
+
+        this.respuestasPendientes.delete(pendiente.pregunta.id);
+
+        const temporizador = this.temporizadoresTexto.get(pendiente.pregunta.id);
+
+        if (temporizador) {
+          clearTimeout(temporizador);
+          this.temporizadoresTexto.delete(pendiente.pregunta.id);
+        }
+
+        await firstValueFrom(
+          this.examenService.guardarRespuesta(intentoId, pendiente.pregunta, pendiente.valor),
+        );
+      }
+    }
+  }
+
+  private esRespuestaDeTexto(tipo: TipoPregunta): boolean {
+    return tipo === 'SHORT_TEXT' || tipo === 'ESSAY';
   }
 
   abrirConfirmacion(): void {
@@ -326,9 +517,11 @@ export class PantallaExamen implements OnInit, OnDestroy {
     }
     this.estadoExamen.set('entregando');
     this.errorEntrega.set(null);
+    const estabaFuera = estado === 'fuera-de-pantalla';
 
     try {
-      const envio = this.examenService.entregarExamen(examen.id, this.respuestas());
+      await this.vaciarRespuestasPendientes(examen.intentoId);
+      const envio = firstValueFrom(this.examenService.entregarExamen(examen.intentoId));
       const espera = automatica ? this.esperar(MINIMO_AVISO_ENTREGA_MS) : Promise.resolve();
       await Promise.all([envio, espera]);
       this.dialogoEntrega()?.nativeElement.close();
@@ -336,9 +529,11 @@ export class PantallaExamen implements OnInit, OnDestroy {
       this.documento.removeEventListener('fullscreenchange', this.alCambiarPantallaCompleta);
       this.salirDePantallaCompleta();
       this.estadoExamen.set('entregado');
-    } catch {
-      this.estadoExamen.set('respondiendo');
-      this.errorEntrega.set('No se pudo entregar el examen. Tus respuestas siguen guardadas, intentá de nuevo.');
+    } catch (error) {
+      this.estadoExamen.set(estabaFuera ? 'fuera-de-pantalla' : 'respondiendo');
+      this.errorEntrega.set(
+        mensajeDeError(error, 'No se pudo entregar el examen. Tus respuestas siguen guardadas, intentá de nuevo.'),
+      );
       if (!this.documento.fullscreenElement) {
         this.salioDePantallaCompleta.set(true);
       }
@@ -351,20 +546,37 @@ export class PantallaExamen implements OnInit, OnDestroy {
 
   private textoRespuesta(pregunta: Pregunta): string {
     const valor = this.respuestas()[pregunta.id];
-    if (pregunta.tipo === 'CHOICE') {
-      return pregunta.opciones?.find((opcion) => opcion.id === valor)?.texto ?? String(valor);
+
+    if (Array.isArray(valor)) {
+      const textos = valor
+        .map((id) => pregunta.opciones?.find((opcion) => opcion.id === id)?.texto)
+        .filter((texto): texto is string => Boolean(texto));
+
+      return textos.join(', ');
     }
-    if (pregunta.tipo === 'TRUE_FALSE') {
-      return valor ? 'Verdadero' : 'Falso';
+
+    if (typeof valor === 'string') {
+      if (pregunta.tipo === 'CHOICE' || pregunta.tipo === 'TRUE_FALSE') {
+        return pregunta.opciones?.find((opcion) => opcion.id === valor)?.texto ?? valor;
+      }
+
+      return valor.trim();
     }
-    return String(valor).trim();
+
+    return '';
   }
 
   private tieneRespuesta(pregunta: Pregunta): boolean {
     const valor = this.respuestas()[pregunta.id];
+
+    if (Array.isArray(valor)) {
+      return valor.length > 0;
+    }
+
     if (typeof valor === 'string') {
       return valor.trim().length > 0;
     }
-    return typeof valor === 'boolean';
+
+    return false;
   }
 }

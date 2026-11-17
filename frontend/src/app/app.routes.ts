@@ -2,6 +2,7 @@
 import { Routes } from '@angular/router';
 
 import { PantallaExamen } from './exam/exam-screen';
+import { ListaExamenesAlumno } from './exam/available-exams';
 import { ListaGrupos } from './groups/groups-list';
 import { InicioSesion } from './auth/login/login';
 import { Registro } from './auth/register/register';
@@ -29,10 +30,21 @@ export const routes: Routes = [
         data: { role: 'STUDENT' },
     },
     {
-        path: 'examen',
+        path: 'examenes',
+        component: ListaExamenesAlumno,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
+    },
+    {
+        path: 'examen/:id',
         component: PantallaExamen,
         canActivate: [authGuard, roleGuard],
         data: { role: 'STUDENT' },
+    },
+    {
+        path: 'examen',
+        redirectTo: 'examenes',
+        pathMatch: 'full',
     },
     {
         path: 'profesor',

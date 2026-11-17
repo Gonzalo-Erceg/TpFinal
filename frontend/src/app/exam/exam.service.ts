@@ -1,119 +1,257 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
-import { Examen, IntentoExamen, Respuesta } from './exam.model';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, map, of, throwError } from 'rxjs';
+import {
+  Examen,
+  ExamenDisponible,
+  IntentoExamen,
+  OpcionPregunta,
+  Pregunta,
+  Respuesta,
+  TipoPregunta,
+} from './exam.model';
 
-const DURACION_DE_PRUEBA = 30;
+interface ExamenDisponibleApi {
+  id: string;
+  title: string;
+  description: string | null;
+  groupName: string | null;
+  status: string;
+  opensAt: string | null;
+  closesAt: string | null;
+  durationMinutes: number | null;
+  attemptsUsed: number;
+  maxAttempts: number | null;
+  hasInProgress: boolean;
+  questionCount: number;
+  totalPoints: number;
+  canStart: boolean;
+}
 
-const USAR_DATOS_DE_PRUEBA = true;
+interface OpcionApi {
+  id: string;
+  content: string;
+  position: number;
+}
+
+interface PreguntaApi {
+  examVersionQuestionId: string;
+  questionId: string;
+  type: string;
+  statement: string;
+  position: number;
+  points: number;
+  options: OpcionApi[];
+}
+
+interface RespuestaApi {
+  examVersionQuestionId: string;
+  optionIds: string[];
+  text: string | null;
+  answeredAt: string | null;
+}
+
+interface ExamenDetalleApi {
+  id: string;
+  title: string;
+  description: string | null;
+  durationMinutes: number | null;
+  closesAt: string | null;
+  attemptId: string;
+  attemptStatus: string;
+  deadlineAt: string;
+  attemptsUsed: number;
+  maxAttempts: number | null;
+  questions: PreguntaApi[];
+  answers: RespuestaApi[];
+}
+
+interface IntentoApi {
+  attemptId: string;
+  deadlineAt: string;
+}
+
+function aTipoPregunta(tipo: string): TipoPregunta {
+  switch (tipo) {
+    case 'SINGLE_CHOICE':
+      return 'CHOICE';
+    case 'MULTIPLE_CHOICE':
+      return 'MULTIPLE_CHOICE';
+    case 'TRUE_FALSE':
+      return 'TRUE_FALSE';
+    case 'SHORT_TEXT':
+      return 'SHORT_TEXT';
+    case 'ESSAY':
+      return 'ESSAY';
+    default:
+      return 'NO_SOPORTADO';
+  }
+}
+
+function esRespuestaDeTexto(tipo: TipoPregunta): boolean {
+  return tipo === 'SHORT_TEXT' || tipo === 'ESSAY';
+}
 
 @Injectable({ providedIn: 'root' })
 export class ExamenService {
-  private examenDePrueba: Examen = {
-    id: 1,
-    titulo: 'Primer parcial',
-    materia: 'Programación I',
-    duracionMinutos: DURACION_DE_PRUEBA,
-    preguntas: [
-      {
-        id: 1,
-        tipo: 'CHOICE',
-        enunciado: '¿Qué responsabilidad cumple una API REST?',
-        puntaje: 1,
-        opciones: [
-          { id: 'a', texto: 'Dibujar automáticamente todas las pantallas de la aplicación.' },
-          { id: 'b', texto: 'Exponer recursos mediante HTTP y definir una interfaz de comunicación.' },
-          { id: 'c', texto: 'Administrar directamente la memoria física del dispositivo.' },
-          { id: 'd', texto: 'Reemplazar al sistema operativo que ejecuta la aplicación.' },
-        ],
-      },
-      {
-        id: 2,
-        tipo: 'CHOICE',
-        enunciado: '¿Qué devuelve typeof null en JavaScript?',
-        puntaje: 1,
-        opciones: [
-          { id: 'a', texto: 'null' },
-          { id: 'b', texto: 'object' },
-          { id: 'c', texto: 'undefined' },
-          { id: 'd', texto: 'number' },
-        ],
-      },
-      {
-        id: 3,
-        tipo: 'TRUE_FALSE',
-        enunciado: 'En JavaScript, una variable declarada con const no puede reasignarse.',
-        puntaje: 1,
-      },
-      {
-        id: 4,
-        tipo: 'SHORT_TEXT',
-        enunciado: 'Explicá qué es el hoisting y da un ejemplo.',
-        puntaje: 2,
-      },
-      {
-        id: 5,
-        tipo: 'CHOICE',
-        enunciado: '¿Qué método agrega un elemento al final de un array?',
-        puntaje: 1,
-        opciones: [
-          { id: 'a', texto: 'push()' },
-          { id: 'b', texto: 'pop()' },
-          { id: 'c', texto: 'shift()' },
-          { id: 'd', texto: 'slice()' },
-        ],
-      },
-      {
-        id: 6,
-        tipo: 'TRUE_FALSE',
-        enunciado: 'Java y JavaScript son el mismo lenguaje de programación.',
-        puntaje: 1,
-      },
-      {
-        id: 7,
-        tipo: 'SHORT_TEXT',
-        enunciado: '¿Qué significa la sigla HTTP?',
-        puntaje: 1,
-      },
-    ],
-  };
+  private http = inject(HttpClient);
 
-  obtenerExamen(): Observable<Examen> {
-    return of(this.examenDePrueba).pipe(delay(500));
+  listarDisponibles(): Observable<ExamenDisponible[]> {
+    return this.http
+      .get<ExamenDisponibleApi[]>('/exams/available')
+      .pipe(map((lista) => lista.map((examenApi) => this.aDisponible(examenApi))));
   }
 
-  guardarRespuesta(idPregunta: number, valor: Respuesta): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(), 800);
-    });
+  obtenerExamen(id: string): Observable<Examen | null> {
+    return this.obtenerExamenActual(id).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 409) {
+          return of(null);
+        }
+
+        return throwError(() => error);
+      }),
+    );
   }
 
-  iniciarIntento(idExamen: number): Promise<IntentoExamen> {
-    if (USAR_DATOS_DE_PRUEBA) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const duracion = this.examenDePrueba.duracionMinutos * 60 * 1000;
-          resolve({ fechaLimite: new Date(Date.now() + duracion).toISOString() });
-        }, 400);
-      });
+  obtenerExamenActual(id: string): Observable<Examen> {
+    return this.http
+      .get<ExamenDetalleApi>(`/exams/${id}/student`)
+      .pipe(map((detalleApi) => this.aExamen(detalleApi)));
+  }
+
+  iniciarIntento(id: string): Observable<IntentoExamen> {
+    return this.http
+      .post<IntentoApi>(`/exams/${id}/attempts`, {}, { observe: 'response' })
+      .pipe(
+        map((respuesta) => ({
+          intentoId: respuesta.body?.attemptId ?? '',
+          fechaLimite: respuesta.body?.deadlineAt ?? '',
+          creado: respuesta.status === 201,
+        })),
+      );
+  }
+
+  guardarRespuesta(
+    intentoId: string,
+    pregunta: Pregunta,
+    valor: Respuesta,
+  ): Observable<void> {
+    return this.http
+      .put<unknown>(`/attempts/${intentoId}/answers/${pregunta.id}`, this.aCuerpoRespuesta(pregunta, valor))
+      .pipe(map(() => undefined));
+  }
+
+  entregarExamen(intentoId: string): Observable<void> {
+    return this.http.post<unknown>(`/attempts/${intentoId}/submit`, {}).pipe(map(() => undefined));
+  }
+
+  private aCuerpoRespuesta(pregunta: Pregunta, valor: Respuesta): Record<string, unknown> {
+    if (esRespuestaDeTexto(pregunta.tipo)) {
+      return { text: typeof valor === 'string' ? valor : '' };
     }
 
-    return Promise.reject(new Error(`Falta conectar POST /exams/${idExamen}/attempts`));
-  }
-
-  entregarExamen(idExamen: number, respuestas: Record<number, Respuesta>): Promise<void> {
-    if (USAR_DATOS_DE_PRUEBA) {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(), 1200);
-      });
+    if (pregunta.tipo === 'MULTIPLE_CHOICE') {
+      return { optionIds: Array.isArray(valor) ? valor : [] };
     }
 
-    const cuerpo = {
-      answers: Object.entries(respuestas).map(([idPregunta, valor]) => ({
-        questionId: Number(idPregunta),
-        value: valor,
-      })),
+    return { optionId: typeof valor === 'string' ? valor : '' };
+  }
+
+  private aDisponible(examenApi: ExamenDisponibleApi): ExamenDisponible {
+    return {
+      id: examenApi.id,
+      titulo: examenApi.title,
+      descripcion: examenApi.description,
+      grupo: examenApi.groupName,
+      estado: examenApi.status,
+      abreEn: examenApi.opensAt,
+      cierraEn: examenApi.closesAt,
+      duracionMinutos: examenApi.durationMinutes,
+      intentosUsados: examenApi.attemptsUsed,
+      intentosMaximos: examenApi.maxAttempts,
+      intentoEnCurso: examenApi.hasInProgress,
+      cantidadPreguntas: examenApi.questionCount ?? 0,
+      puntajeTotal: examenApi.totalPoints ?? 0,
+      puedeIniciar: examenApi.canStart,
     };
-    return Promise.reject(new Error(`Falta conectar POST /exams/${idExamen}/submit con ${JSON.stringify(cuerpo)}`));
+  }
+
+  private aExamen(detalleApi: ExamenDetalleApi): Examen {
+    const preguntas = detalleApi.questions.map((preguntaApi) => this.aPregunta(preguntaApi));
+
+    return {
+      id: detalleApi.id,
+      titulo: detalleApi.title,
+      descripcion: detalleApi.description,
+      grupo: null,
+      duracionMinutos: detalleApi.durationMinutes,
+      cierraEn: detalleApi.closesAt,
+      intentoId: detalleApi.attemptId,
+      fechaLimite: detalleApi.deadlineAt,
+      intentosUsados: detalleApi.attemptsUsed,
+      intentosMaximos: detalleApi.maxAttempts,
+      preguntas,
+      respuestas: this.aRespuestas(preguntas, detalleApi.answers),
+    };
+  }
+
+  private aPregunta(preguntaApi: PreguntaApi): Pregunta {
+    const tipo = aTipoPregunta(preguntaApi.type);
+
+    return {
+      id: preguntaApi.examVersionQuestionId,
+      tipo,
+      enunciado: preguntaApi.statement,
+      puntaje: preguntaApi.points,
+      posicion: preguntaApi.position,
+      opciones: this.aOpciones(tipo, preguntaApi.options),
+    };
+  }
+
+  private aOpciones(tipo: TipoPregunta, opcionesApi: OpcionApi[]): OpcionPregunta[] {
+    if (esRespuestaDeTexto(tipo) || tipo === 'NO_SOPORTADO') {
+      return [];
+    }
+
+    return (opcionesApi ?? []).map((opcionApi) => ({
+      id: opcionApi.id,
+      texto: opcionApi.content,
+      posicion: opcionApi.position,
+    }));
+  }
+
+  private aRespuestas(
+    preguntas: Pregunta[],
+    respuestasApi: RespuestaApi[],
+  ): Record<string, Respuesta> {
+    const preguntasPorId = new Map(preguntas.map((pregunta) => [pregunta.id, pregunta]));
+    const respuestas: Record<string, Respuesta> = {};
+
+    for (const respuestaApi of respuestasApi) {
+      const pregunta = preguntasPorId.get(respuestaApi.examVersionQuestionId);
+
+      if (!pregunta) {
+        continue;
+      }
+
+      if (esRespuestaDeTexto(pregunta.tipo)) {
+        if (respuestaApi.text !== null) {
+          respuestas[pregunta.id] = respuestaApi.text;
+        }
+        continue;
+      }
+
+      const opciones = respuestaApi.optionIds ?? [];
+
+      if (opciones.length === 0) {
+        continue;
+      }
+
+      respuestas[pregunta.id] =
+        pregunta.tipo === 'MULTIPLE_CHOICE' ? opciones : opciones[0];
+    }
+
+    return respuestas;
   }
 }

@@ -1,0 +1,212 @@
+:host {
+  --bg: #f8f7f5;
+  --white: #fff;
+  --ink: #242332;
+  --muted: #8b8998;
+  --border: #e9e6ea;
+  --texto-suave: #6f6b7c;
+  --fondo-pagina: #f8f8f9;
+  --brillo: #efedf7;
+  --boton-fondo: #382e54;
+  --boton-texto: #fff;
+  --boton-hover: #544077;
+  --ok-fondo: #e3f3e9;
+  --ok-texto: #1f6b47;
+  --ok-borde: #bfe0cd;
+  --error-texto: #a3303f;
+
+  display: block;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse 52% 42% at 90% -16%, var(--brillo) 0%, transparent 72%),
+    var(--fondo-pagina);
+}
+
+.pagina {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px clamp(20px, 4vw, 56px) 56px;
+}
+
+.barra {
+  margin-bottom: 24px;
+}
+
+.boton-barra {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--boton-fondo);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.encabezado {
+  margin-bottom: 32px;
+}
+
+.titulo {
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.subtitulo {
+  font-size: 15px;
+  color: var(--muted);
+  margin: 10px 0 0;
+}
+
+.aviso {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.error {
+  color: var(--error-texto);
+  font-size: 14px;
+}
+
+.vacio {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+
+  strong {
+    display: block;
+    color: var(--ink);
+    margin-bottom: 4px;
+    font-size: 16px;
+  }
+}
+
+.examenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.examen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.examen-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.etiqueta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--ok-fondo);
+  border: 1px solid var(--ok-borde);
+  color: var(--ok-texto);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.examen-titulo {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.examen-descripcion {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.datos {
+  display: flex;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    font-size: 18px;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+}
+
+.examen-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.boton-principal {
+  margin-top: auto;
+  border: 0;
+  border-radius: 12px;
+  background: var(--boton-fondo);
+  color: var(--boton-texto);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 20px;
+  display: inline-flex;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s;
+
+  &:hover {
+    background: var(--boton-hover);
+  }
+}
+
+.no-disponible {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+}

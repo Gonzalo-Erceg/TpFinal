@@ -2,13 +2,13 @@
   <legend class="solo-lectores">{{ pregunta().enunciado }}</legend>
 
   @for (opcion of pregunta().opciones ?? []; track opcion.id; let i = $index) {
-    <label class="opcion" [class.elegida]="respuesta() === opcion.id">
+    <label class="opcion" [class.elegida]="estaElegida(opcion.id)">
       <input
-        type="radio"
+        [type]="multiple() ? 'checkbox' : 'radio'"
         [name]="'pregunta-' + pregunta().id"
         [value]="opcion.id"
-        [checked]="respuesta() === opcion.id"
-        (change)="respuestaCambiada.emit(opcion.id)"
+        [checked]="estaElegida(opcion.id)"
+        (change)="cambiar(opcion.id)"
       />
       <span class="letra" aria-hidden="true">{{ letra(i) }}</span>
       <span class="texto">{{ opcion.texto }}</span>

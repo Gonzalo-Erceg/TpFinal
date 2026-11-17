@@ -2,9 +2,9 @@
 <textarea
   [id]="'texto-' + pregunta().id"
   rows="5"
-  [maxLength]="limite"
+  [maxLength]="limite()"
   placeholder="Escribí tu respuesta acá"
   [value]="texto()"
   (input)="alEscribir($event)"
 ></textarea>
-<p class="contador">{{ texto().length }} / {{ limite }}</p>
+<p class="contador">{{ texto().length }} / {{ limite() }}</p>

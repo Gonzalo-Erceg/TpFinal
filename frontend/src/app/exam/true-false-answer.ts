@@ -9,10 +9,24 @@ import { Pregunta, Respuesta } from './exam.model';
 export class RespuestaTrueFalse {
   pregunta = input.required<Pregunta>();
   respuesta = input<Respuesta | undefined>();
-  respuestaCambiada = output<boolean>();
+  respuestaCambiada = output<string>();
 
-  opciones = [
-    { valor: true, texto: 'Verdadero', letra: 'V' },
-    { valor: false, texto: 'Falso', letra: 'F' },
-  ];
+  estaElegida(opcionId: string): boolean {
+    return this.respuesta() === opcionId;
+  }
+
+  letra(opcionId: string, indice: number): string {
+    const opcion = (this.pregunta().opciones ?? []).find((item) => item.id === opcionId);
+    const texto = opcion?.texto.trim().toLowerCase() ?? '';
+
+    if (texto.startsWith('verdadero')) {
+      return 'V';
+    }
+
+    if (texto.startsWith('falso')) {
+      return 'F';
+    }
+
+    return String.fromCharCode(65 + indice);
+  }
 }
