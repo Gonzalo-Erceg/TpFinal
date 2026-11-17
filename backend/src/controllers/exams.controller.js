@@ -51,6 +51,15 @@ class ExamsController {
         }
     }
 
+    async publish(req, res) {
+        try {
+            const result = await examsService.publish(req.params.id, req.body ?? {}, req.user);
+            res.status(200).json(result);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
     async close(req, res) {
         try {
             const result = await examsService.close(req.params.id, req.user);

@@ -299,6 +299,29 @@ class ExamsService {
         return this.getById(examId, user);
     }
 
+    async publish(examId, data, user) {
+        if (!esGuid(examId)) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        const publishAt = data?.publishAt ?? null;
+
+        if (publishAt !== null && isNaN(new Date(publishAt).getTime())) {
+            throw new AuthError('La fecha de publicación no es válida');
+        }
+
+        const result = await examsRepository.publish(
+            examId,
+            user.id,
+            publishAt ? new Date(publishAt) : null
+        );
+
+        return {
+            ...result,
+            publishedAt: aIso(result.publishedAt),
+        };
+    }
+
     async close(examId, user) {
         if (!esGuid(examId)) {
             throw new AuthError('El examen no existe', 404);

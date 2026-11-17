@@ -402,6 +402,142 @@ class ExamsRepository {
         }
     }
 
+    async publish(examId, teacherId, publishAt) {
+        const db = await pool;
+        const transaction = new sql.Transaction(db);
+
+        await transaction.begin();
+
+        try {
+            const examResult = await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('teacherId', sql.UniqueIdentifier, teacherId)
+                .query(`
+                    SELECT
+                        e.Id,
+                        e.Status,
+                        e.CurrentVersionId,
+                        e.ClosesAt,
+                        v.Status AS VersionStatus
+                    FROM Exams e WITH (UPDLOCK, HOLDLOCK)
+                    LEFT JOIN ExamVersions v ON v.Id = e.CurrentVersionId
+                    WHERE e.Id = @examId
+                      AND e.TeacherId = @teacherId
+                `);
+
+            const exam = examResult.recordset[0];
+
+            if (!exam) {
+                throw new AuthError('El examen no existe', 404);
+            }
+
+            if (exam.Status === 'CLOSED') {
+                throw new AuthError('El examen está cerrado', 409);
+            }
+
+            if (!exam.CurrentVersionId || exam.VersionStatus !== 'DRAFT') {
+                throw new AuthError('La versión de trabajo no está en borrador', 409);
+            }
+
+            if (publishAt && exam.ClosesAt && new Date(publishAt) > new Date(exam.ClosesAt)) {
+                throw new AuthError('La fecha de publicación no puede ser posterior al cierre del examen');
+            }
+
+            const questionsResult = await new sql.Request(transaction)
+                .input('versionId', sql.UniqueIdentifier, exam.CurrentVersionId)
+                .query(`
+                    SELECT
+                        COUNT(*) AS TotalQuestions,
+                        ISNULL(SUM(Points), 0) AS TotalPoints
+                    FROM ExamVersionQuestions
+                    WHERE ExamVersionId = @versionId
+                `);
+
+            const questions = questionsResult.recordset[0];
+
+            if (questions.TotalQuestions === 0 || Number(questions.TotalPoints) <= 0) {
+                throw new AuthError('El examen debe tener al menos una pregunta con puntos', 409);
+            }
+
+            const groupsResult = await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('teacherId', sql.UniqueIdentifier, teacherId)
+                .query(`
+                    SELECT COUNT(*) AS TotalGroups
+                    FROM ExamGroups eg
+                    JOIN ClassGroups g ON g.Id = eg.GroupId
+                    WHERE eg.ExamId = @examId
+                      AND g.TeacherId = @teacherId
+                      AND g.IsActive = 1
+                `);
+
+            if (groupsResult.recordset[0].TotalGroups === 0) {
+                throw new AuthError('El examen debe estar asignado a al menos un grupo activo', 409);
+            }
+
+            await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('versionId', sql.UniqueIdentifier, exam.CurrentVersionId)
+                .query(`
+                    UPDATE ExamVersions
+                    SET Status = 'ARCHIVED'
+                    WHERE ExamId = @examId
+                      AND Status = 'PUBLISHED'
+                      AND Id <> @versionId
+                `);
+
+            await new sql.Request(transaction)
+                .input('versionId', sql.UniqueIdentifier, exam.CurrentVersionId)
+                .query(`
+                    UPDATE ExamVersions
+                    SET Status = 'PUBLISHED',
+                        PublishedAt = SYSUTCDATETIME()
+                    WHERE Id = @versionId
+                      AND Status = 'DRAFT'
+                `);
+
+            const publishResult = await new sql.Request(transaction)
+                .input('examId', sql.UniqueIdentifier, examId)
+                .input('versionId', sql.UniqueIdentifier, exam.CurrentVersionId)
+                .input('publishAt', sql.DateTime2, publishAt ?? null)
+                .query(`
+                    UPDATE Exams
+                    SET Status = CASE
+                            WHEN @publishAt IS NOT NULL AND @publishAt > SYSUTCDATETIME()
+                                THEN 'SCHEDULED'
+                            ELSE 'PUBLISHED'
+                        END,
+                        PublishAt = COALESCE(@publishAt, SYSUTCDATETIME()),
+                        CurrentVersionId = @versionId,
+                        UpdatedAt = SYSUTCDATETIME()
+                    OUTPUT
+                        INSERTED.Status AS Status,
+                        INSERTED.PublishAt AS PublishedAt,
+                        INSERTED.CurrentVersionId AS PublishedVersionId
+                    WHERE Id = @examId
+                `);
+
+            await transaction.commit();
+
+            const published = publishResult.recordset[0];
+
+            return {
+                id: examId,
+                status: published.Status,
+                publishedVersionId: published.PublishedVersionId,
+                publishedAt: published.PublishedAt,
+            };
+
+        } catch (error) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+            }
+
+            throw error;
+        }
+    }
+
     async close(examId, teacherId) {
         const db = await pool;
         const transaction = new sql.Transaction(db);
