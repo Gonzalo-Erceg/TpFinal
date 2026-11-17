@@ -1,7 +1,9 @@
 const ExamsRepository = require('../repositories/exams.repository');
+const ManualGradingService = require('./manual-grading.service');
 const AuthError = require('../utils/auth-error');
 
 const examsRepository = new ExamsRepository();
+const manualGradingService = new ManualGradingService();
 const FORMATO_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MODOS_LIBERACION = ['IMMEDIATE', 'ON_CLOSE', 'MANUAL'];
 
@@ -348,6 +350,14 @@ class ExamsService {
         const rows = await examsRepository.findAttemptsByExam(examId, user.id);
 
         return rows.map(toAttempt);
+    }
+
+    async getAttemptReview(examId, attemptId, user) {
+        return manualGradingService.getReview(examId, attemptId, user);
+    }
+
+    async saveAttemptReview(examId, attemptId, body, user) {
+        return manualGradingService.saveReview(examId, attemptId, body, user);
     }
 }
 

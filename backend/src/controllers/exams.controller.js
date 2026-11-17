@@ -77,6 +77,33 @@ class ExamsController {
             sendError(res, error);
         }
     }
+
+    async getAttemptReview(req, res) {
+        try {
+            const revision = await examsService.getAttemptReview(
+                req.params.id,
+                req.params.attemptId,
+                req.user
+            );
+            res.status(200).json(revision);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async saveAttemptReview(req, res) {
+        try {
+            const resultado = await examsService.saveAttemptReview(
+                req.params.id,
+                req.params.attemptId,
+                req.body ?? {},
+                req.user
+            );
+            res.status(200).json(resultado);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
 }
 
 module.exports = ExamsController;

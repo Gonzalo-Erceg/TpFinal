@@ -450,6 +450,139 @@ class StudentExamsRepository {
         return result.recordset[0] ?? null;
     }
 
+    async findAttemptForReview(examId, attemptId, teacherId, options = {}) {
+        const { transaction = null, forUpdate = false } = options;
+        const request = await requestFor(transaction);
+        const lockHint = forUpdate ? 'WITH (UPDLOCK, HOLDLOCK)' : '';
+
+        const result = await request
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                SELECT
+                    a.Id,
+                    a.ExamId,
+                    a.ExamVersionId,
+                    a.StudentId,
+                    a.ExamAttemptNumber,
+                    a.Status,
+                    a.SubmittedAt,
+                    a.TotalScore,
+                    a.MaxScore,
+                    a.GradedAt,
+                    e.Title AS ExamTitle,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email
+                FROM ExamAttempts a ${lockHint}
+                JOIN Exams e ON e.Id = a.ExamId
+                JOIN Users u ON u.Id = a.StudentId
+                WHERE a.Id = @attemptId
+                  AND a.ExamId = @examId
+                  AND e.TeacherId = @teacherId
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findReviewQuestions(attemptId, examVersionId, transaction = null) {
+        const request = await requestFor(transaction);
+
+        const result = await request
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .input('examVersionId', sql.UniqueIdentifier, examVersionId)
+            .query(`
+                SELECT
+                    evq.Id AS ExamVersionQuestionId,
+                    evq.Position,
+                    evq.Points,
+                    r.QuestionType,
+                    r.Statement,
+                    aa.Id AS AnswerId,
+                    aa.ResponseText,
+                    aa.GradingStatus,
+                    ag.AwardedPoints,
+                    ag.GradingMethod
+                FROM ExamVersionQuestions evq
+                JOIN QuestionRevisions r ON r.Id = evq.QuestionRevisionId
+                LEFT JOIN AttemptAnswers aa
+                    ON aa.AttemptId = @attemptId
+                   AND aa.ExamVersionQuestionId = evq.Id
+                LEFT JOIN AnswerGrades ag ON ag.AnswerId = aa.Id
+                WHERE evq.ExamVersionId = @examVersionId
+                ORDER BY evq.Position
+            `);
+
+        return result.recordset;
+    }
+
+    async saveManualGrades(transaction, teacherId, calificaciones) {
+        for (const calificacion of calificaciones) {
+            const request = new sql.Request(transaction)
+                .input('answerId', sql.UniqueIdentifier, calificacion.answerId)
+                .input('awardedPoints', sql.Decimal(10, 2), calificacion.awardedPoints)
+                .input('teacherId', sql.UniqueIdentifier, teacherId);
+
+            await request.query(`
+                UPDATE AnswerGrades
+                SET AwardedPoints = @awardedPoints,
+                    GradingMethod = 'MANUAL',
+                    GraderId = @teacherId,
+                    GradedAt = SYSUTCDATETIME()
+                WHERE AnswerId = @answerId;
+
+                IF @@ROWCOUNT = 0
+                    INSERT INTO AnswerGrades (AnswerId, AwardedPoints, GradingMethod, GraderId)
+                    VALUES (@answerId, @awardedPoints, 'MANUAL', @teacherId);
+
+                UPDATE AttemptAnswers
+                SET GradingStatus = 'GRADED'
+                WHERE Id = @answerId;
+            `);
+        }
+    }
+
+    async finalizeManualGrading(transaction, attemptId) {
+        const result = await new sql.Request(transaction)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .query(`
+                DECLARE @maximo DECIMAL(10, 2);
+                DECLARE @total DECIMAL(10, 2);
+                DECLARE @pendientes INT;
+
+                SELECT @maximo = ISNULL(SUM(evq.Points), 0)
+                FROM ExamVersionQuestions evq
+                JOIN ExamAttempts a ON a.ExamVersionId = evq.ExamVersionId
+                WHERE a.Id = @attemptId;
+
+                SELECT @total = ISNULL(SUM(ag.AwardedPoints), 0)
+                FROM AnswerGrades ag
+                JOIN AttemptAnswers aa ON aa.Id = ag.AnswerId
+                WHERE aa.AttemptId = @attemptId;
+
+                SELECT @pendientes = COUNT(*)
+                FROM AttemptAnswers
+                WHERE AttemptId = @attemptId
+                  AND GradingStatus = 'MANUAL_REVIEW';
+
+                UPDATE ExamAttempts
+                SET Status = CASE WHEN @pendientes = 0 THEN 'GRADED' ELSE 'GRADING' END,
+                    TotalScore = @total,
+                    MaxScore = @maximo,
+                    GradedAt = CASE WHEN @pendientes = 0 THEN SYSUTCDATETIME() ELSE NULL END
+                OUTPUT
+                    INSERTED.Status,
+                    INSERTED.TotalScore,
+                    INSERTED.MaxScore,
+                    INSERTED.GradedAt
+                WHERE Id = @attemptId
+                  AND Status IN ('GRADING', 'GRADED');
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
     async findResultRows(attemptId, examVersionId) {
         const db = await pool;
 

@@ -2,7 +2,7 @@
 
 Documento de referencia para el backend y el frontend. Define el alcance del flujo de exámenes, los estados, los DTOs y las reglas de autorización que deben implementarse.
 
-> Estado: contrato de trabajo para las etapas P0 y P1. El flujo docente, el flujo del alumno y la corrección automática con liberación de resultados están implementados (backend y frontend). La revisión manual de preguntas de desarrollo queda pendiente.
+> Estado: contrato de trabajo para las etapas P0 a P2. El flujo docente, el flujo del alumno, la corrección automática, la liberación de resultados y la revisión manual de preguntas de desarrollo están implementados (backend y frontend).
 
 ## 1. Alcance
 
@@ -11,11 +11,10 @@ Este contrato cubre:
 - Creación, edición, asignación a grupos y publicación de exámenes por parte del docente.
 - Listado de exámenes disponibles para el alumno.
 - Inicio de un intento, guardado de respuestas y entrega.
-- Consulta de resultados según la configuración del examen.
+- Corrección automática, revisión manual de preguntas de desarrollo y consulta de resultados según la configuración del examen.
 
-Queda fuera de esta primera etapa:
+Queda fuera de esta etapa:
 
-- Corrección manual de preguntas de desarrollo.
 - Carga de archivos.
 - Tipos de pregunta avanzados (`MATCHING`, `ORDERING`, `FILE_UPLOAD`, `ESSAY`).
 - Eventos anti-cheat y analítica.
@@ -295,6 +294,8 @@ Todos requieren `Authorization: Bearer <token>` y rol `TEACHER`.
 | `POST` | `/exams/:id/close` | Cierra el examen. |
 | `POST` | `/exams/:id/release-results` | Libera los resultados a los alumnos. |
 | `GET` | `/exams/:id/attempts` | Lista los intentos de los alumnos con sus puntajes. |
+| `GET` | `/exams/:id/attempts/:attemptId/review` | Devuelve las respuestas y calificaciones de un intento para revisión manual. |
+| `PUT` | `/exams/:id/attempts/:attemptId/review` | Guarda las notas manuales y recalcula el intento. |
 
 ### 5.1 `POST /exams`
 
@@ -403,6 +404,80 @@ Devuelve los intentos del examen ordenados por inicio descendente:
 
 - Solo el docente propietario del examen.
 - Incluye el puntaje aunque los resultados todavía no estén liberados a los alumnos.
+
+### 5.7 Revisión manual de un intento
+
+Sólo el docente propietario. El intento debe pertenecer al examen indicado. Si está `SUBMITTED`, se corrige antes de responder; si está `IN_PROGRESS` o `CANCELLED`, responde `409`.
+
+#### `GET /exams/:id/attempts/:attemptId/review`
+
+```json
+{
+  "attemptId": "uuid",
+  "examId": "uuid",
+  "examTitle": "Primer parcial",
+  "studentId": "uuid",
+  "studentName": "Ana Pérez",
+  "studentEmail": "ana@example.com",
+  "attemptNumber": 1,
+  "status": "GRADING",
+  "submittedAt": "2026-11-20T13:20:00.000Z",
+  "totalScore": 2,
+  "maxScore": 10,
+  "gradedAt": null,
+  "pendingCount": 1,
+  "questions": [
+    {
+      "examVersionQuestionId": "uuid",
+      "position": 1,
+      "type": "ESSAY",
+      "statement": "Explique el ciclo de vida de un componente",
+      "points": 4,
+      "responseText": "El componente se inicializa...",
+      "gradingStatus": "MANUAL_REVIEW",
+      "awardedPoints": null,
+      "gradingMethod": null,
+      "needsReview": true,
+      "editable": true
+    }
+  ]
+}
+```
+
+- Incluye **todas** las preguntas de la versión del intento, con la respuesta del alumno y su calificación actual.
+- `needsReview` es `true` cuando la respuesta espera corrección manual.
+- `editable` es `true` para respuestas pendientes y para notas ya cargadas manualmente (permite ajustarlas).
+
+#### `PUT /exams/:id/attempts/:attemptId/review`
+
+```json
+{
+  "grades": [
+    { "examVersionQuestionId": "uuid", "awardedPoints": 3.5 }
+  ]
+}
+```
+
+Reglas:
+
+- Cada `examVersionQuestionId` debe pertenecer a la versión del intento, tener respuesta del alumno y admitir corrección manual. Un id ajeno responde `404`; una pregunta automática o sin respuesta responde `409`.
+- `awardedPoints` debe ser un número finito entre `0` y los puntos de la pregunta. Se redondea a dos decimales.
+- No se pueden repetir preguntas en `grades`.
+- Se guarda en `AnswerGrades` con `GradingMethod = 'MANUAL'` y `GraderId` del docente; la respuesta pasa a `AttemptAnswers.GradingStatus = 'GRADED'`.
+- Se recalcula `TotalScore` con todas las calificaciones guardadas y `MaxScore` con los puntos de la versión. Las preguntas sin respuesta valen `0`.
+- Si no quedan respuestas `MANUAL_REVIEW`, el intento pasa a `GRADED` y se setea `GradedAt`; si quedan, permanece `GRADING`.
+- Es idempotente: volver a enviar la misma nota no duplica filas ni cambia el resultado.
+- Respuesta `200`:
+
+```json
+{
+  "attemptId": "uuid",
+  "status": "GRADED",
+  "totalScore": 5.5,
+  "maxScore": 10,
+  "gradedAt": "2026-11-20T14:10:00.000Z"
+}
+```
 
 ## 6. Endpoints del alumno
 
@@ -544,7 +619,7 @@ La corrección se ejecuta al entregar el intento y también de forma diferida cu
 | `SINGLE_CHOICE`, `TRUE_FALSE` | `puntos × CreditFraction` de la opción elegida. |
 | `MULTIPLE_CHOICE` | `puntos × suma de CreditFraction` de las opciones elegidas, limitado a `[0, puntos]`. Los créditos negativos restan. |
 | `SHORT_TEXT` | Puntaje completo si el texto coincide con alguna de `contentJson.acceptedAnswers`; si no, `0`. |
-| `ESSAY` y tipos no usados | Quedan en revisión manual (`GradingStatus = MANUAL_REVIEW`) y el intento pasa a `GRADING`. |
+| `ESSAY` y tipos no usados | Quedan en revisión manual (`GradingStatus = MANUAL_REVIEW`) y el intento pasa a `GRADING` hasta que el docente complete la nota (ver 5.7). |
 
 - La comparación de `SHORT_TEXT` recorta espacios, colapsa espacios internos y respeta `gradingConfigJson.caseSensitive`.
 - Una pregunta sin responder se califica con `0` automáticamente, sin pasar por revisión manual.
@@ -595,3 +670,4 @@ El runner de migraciones registra cada archivo aplicado en `dbo.SchemaMigrations
 - Publicar es transaccional e inmutable.
 - Iniciar y entregar intentos es idempotente y resistente a concurrencia.
 - Los errores son consistentes y no filtran información.
+- Un intento con preguntas de desarrollo no pasa a `GRADED` hasta que el docente guarda todas las notas manuales.

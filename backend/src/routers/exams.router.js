@@ -15,5 +15,7 @@ router.put('/:id', (req, res) => controller.update(req, res));
 router.post('/:id/close', (req, res) => controller.close(req, res));
 router.post('/:id/release-results', (req, res) => controller.releaseResults(req, res));
 router.get('/:id/attempts', (req, res) => controller.listAttempts(req, res));
+router.get('/:id/attempts/:attemptId/review', (req, res) => controller.getAttemptReview(req, res));
+router.put('/:id/attempts/:attemptId/review', (req, res) => controller.saveAttemptReview(req, res));
 
 module.exports = router;
