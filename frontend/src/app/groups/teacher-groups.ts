@@ -1,12 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { GruposService } from './groups.service';
 import { GrupoDelProfesor, Alumno, EstadoAlumno } from './group.model';
 import { DialogoCrearGrupo } from './create-group-dialog';
-import { DatePipe } from '@angular/common';
 
 
 @Component({
-  imports: [DialogoCrearGrupo, DatePipe],
+  imports: [DialogoCrearGrupo, DatePipe, RouterLink],
   selector: 'app-grupos-profesor',
   styleUrl: './teacher-groups.scss',
   templateUrl: './teacher-groups.html',
