@@ -1,6 +1,8 @@
 <main class="pagina">
     <header class="encabezado">
-        <h1 class="titulo">Mis grupos</h1>
+        <div>
+            <h1 class="titulo">Mis grupos</h1>
+        </div>
         <button type="button" class="boton-principal" (click)="abrirDialogo()">+ Crear grupo</button>
     </header>
     @if(cargando()){
@@ -57,7 +59,7 @@
                         <th>Email</th>
                         <th>Estado</th>
                         <th>Fecha de solicitud</th>
-                        <th>Acciones</th>F
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>

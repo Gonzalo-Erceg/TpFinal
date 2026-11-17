@@ -1,0 +1,96 @@
+<main class="pagina">
+  <header class="encabezado">
+    <div>
+      <h1 class="titulo">Exámenes</h1>
+      <p class="subtitulo">Creá exámenes, asignales grupos y publicalos para tus alumnos.</p>
+    </div>
+    <a class="boton-principal" routerLink="/profesor/examenes/nuevo">+ Nuevo examen</a>
+  </header>
+
+  @if (anuncio()) {
+  <p class="exito">{{ anuncio() }}</p>
+  }
+
+  @if (errorAccion()) {
+  <p class="error">{{ errorAccion() }}</p>
+  }
+
+  @if (cargando()) {
+  <p class="aviso">Cargando exámenes...</p>
+  } @else if (mensajeError()) {
+  <p class="error">{{ mensajeError() }}</p>
+  } @else if (examenes().length === 0) {
+  <div class="vacio">
+    <strong>Todavía no creaste exámenes</strong>
+    Tocá "+ Nuevo examen" para crear el primero.
+  </div>
+  } @else {
+  <div class="tabla-contenedor">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Estado</th>
+          <th>Preguntas</th>
+          <th>Intentos</th>
+          <th>Grupos</th>
+          <th>Resultados</th>
+          <th>Apertura</th>
+          <th>Cierre</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (examen of examenes(); track examen.id) {
+        <tr>
+          <td>
+            <strong class="titulo-examen">{{ examen.titulo }}</strong>
+            @if (examen.descripcion) {
+            <div class="detalle">{{ examen.descripcion }}</div>
+            }
+          </td>
+          <td>
+            <span class="chip" [attr.data-estado]="examen.estado">
+              {{ etiquetasEstado[examen.estado] }}
+            </span>
+          </td>
+          <td>{{ examen.cantidadPreguntas }}</td>
+          <td>{{ examen.cantidadIntentos }}</td>
+          <td>{{ examen.gruposIds.length }}</td>
+          <td>{{ etiquetaLiberacion(examen) }}</td>
+          <td>{{ examen.abreEn ? (examen.abreEn | date: 'short') : '—' }}</td>
+          <td>{{ examen.cierraEn ? (examen.cierraEn | date: 'short') : '—' }}</td>
+          <td class="acciones-fila">
+            @if (examen.estado === 'DRAFT') {
+            <a class="boton-secundario boton-chico" [routerLink]="['/profesor/examenes', examen.id, 'editar']">
+              Editar
+            </a>
+            <button type="button" class="boton-principal boton-chico" [disabled]="procesando() === examen.id"
+              (click)="publicar(examen)">
+              Publicar
+            </button>
+            } @else {
+            @if (examen.estado !== 'CLOSED') {
+            <button type="button" class="boton-secundario boton-chico" [disabled]="procesando() === examen.id"
+              (click)="cerrar(examen)">
+              Cerrar
+            </button>
+            }
+            <a class="boton-secundario boton-chico" [routerLink]="['/profesor/examenes', examen.id, 'resultados']">
+              Resultados
+            </a>
+            @if (examen.modoLiberacion === 'MANUAL' && !examen.liberadoEn) {
+            <button type="button" class="boton-principal boton-chico" [disabled]="procesando() === examen.id"
+              (click)="liberar(examen)">
+              {{ procesando() === examen.id ? 'Liberando...' : 'Liberar resultados' }}
+            </button>
+            }
+            }
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+</main>

@@ -19,3 +19,121 @@ Content-Type: application/json
     "email": "gonzalo@example.com",
     "password": "password123"
 }
+
+### Crear examen (reemplazar TOKEN por el JWT del docente)
+POST http://localhost:3000/exams
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{
+    "title": "Primer parcial",
+    "description": "Unidades 1 a 3",
+    "opensAt": "2026-11-20T12:00:00.000Z",
+    "closesAt": "2026-11-20T14:00:00.000Z",
+    "durationMinutes": 90,
+    "maxAttempts": 1,
+    "resultsReleaseMode": "MANUAL",
+    "showCorrectAnswers": false
+}
+
+### Listar exámenes del docente
+GET http://localhost:3000/exams
+Authorization: Bearer TOKEN
+
+### Detalle de un examen
+GET http://localhost:3000/exams/EXAM_ID
+Authorization: Bearer TOKEN
+
+### Editar borrador: metadatos, grupos y preguntas
+PUT http://localhost:3000/exams/EXAM_ID
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{
+    "title": "Primer parcial",
+    "description": "Unidades 1 a 3",
+    "opensAt": "2026-11-20T12:00:00.000Z",
+    "closesAt": "2026-11-20T14:00:00.000Z",
+    "durationMinutes": 90,
+    "maxAttempts": 1,
+    "resultsReleaseMode": "MANUAL",
+    "showCorrectAnswers": true,
+    "groupIds": ["GROUP_ID"],
+    "questions": [
+        { "questionId": "QUESTION_ID", "points": 2, "position": 1 }
+    ]
+}
+
+### Cerrar
+POST http://localhost:3000/exams/EXAM_ID/close
+Authorization: Bearer TOKEN
+
+### Liberar resultados a los alumnos
+POST http://localhost:3000/exams/EXAM_ID/release-results
+Authorization: Bearer TOKEN
+
+### Resultados del examen: intentos y puntajes
+GET http://localhost:3000/exams/EXAM_ID/attempts
+Authorization: Bearer TOKEN
+
+### Corrección manual: respuestas y calificaciones de un intento
+GET http://localhost:3000/exams/EXAM_ID/attempts/ATTEMPT_ID/review
+Authorization: Bearer TOKEN
+
+### Corrección manual: guardar notas y recalcular el intento
+PUT http://localhost:3000/exams/EXAM_ID/attempts/ATTEMPT_ID/review
+Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{
+    "grades": [
+        { "examVersionQuestionId": "EXAM_VERSION_QUESTION_ID", "awardedPoints": 3.5 }
+    ]
+}
+
+### Alumno: exámenes disponibles
+GET http://localhost:3000/exams/available
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: detalle del examen (requiere intento en curso)
+GET http://localhost:3000/exams/EXAM_ID/student
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: estado del intento y respuestas guardadas
+GET http://localhost:3000/attempts/ATTEMPT_ID
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: guardar respuesta de opción única
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "optionId": "OPTION_ID"
+}
+
+### Alumno: guardar respuesta de opción múltiple
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "optionIds": ["OPTION_ID_1", "OPTION_ID_2"]
+}
+
+### Alumno: guardar respuesta de texto
+PUT http://localhost:3000/attempts/ATTEMPT_ID/answers/EXAM_VERSION_QUESTION_ID
+Authorization: Bearer STUDENT_TOKEN
+Content-Type: application/json
+
+{
+    "text": "Una interfaz HTTP"
+}
+
+### Alumno: entregar intento
+POST http://localhost:3000/attempts/ATTEMPT_ID/submit
+Authorization: Bearer STUDENT_TOKEN
+
+### Alumno: resultado (si fue corregido y liberado)
+GET http://localhost:3000/attempts/ATTEMPT_ID/result
+Authorization: Bearer STUDENT_TOKEN

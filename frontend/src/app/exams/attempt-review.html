@@ -1,0 +1,98 @@
+<main class="pagina">
+  <app-back-link
+    [destino]="['/profesor/examenes', examenId, 'resultados']"
+    etiqueta="Volver a resultados"
+  />
+
+  @if (cargando()) {
+    <p class="aviso">Cargando corrección...</p>
+  } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    <button type="button" class="boton-principal" (click)="cargar()">Reintentar</button>
+  } @else if (revision(); as revisionActual) {
+    <header class="encabezado">
+      <div>
+        <p class="etiqueta">Corrección manual</p>
+        <h1 class="titulo">{{ revisionActual.tituloExamen }}</h1>
+        <p class="subtitulo">
+          {{ revisionActual.estudianteNombre || 'Sin nombre' }} · intento #{{ revisionActual.numeroIntento }}
+          @if (revisionActual.entregadoEn) {
+            · entregado el {{ revisionActual.entregadoEn | date: 'dd/MM/yyyy HH:mm' }}
+          }
+        </p>
+      </div>
+      <span class="chip" [attr.data-estado]="revisionActual.estado">
+        {{ etiquetasEstado[revisionActual.estado] }}
+      </span>
+    </header>
+
+    @if (errorAccion()) {
+      <p class="error">{{ errorAccion() }}</p>
+    }
+
+    <section class="resumen" aria-label="Resumen del intento">
+      <div class="dato">
+        <strong>{{ revisionActual.cantidadPendientes }}</strong>
+        <span>{{ revisionActual.cantidadPendientes === 1 ? 'respuesta pendiente' : 'respuestas pendientes' }}</span>
+      </div>
+      <div class="dato">
+        <strong>{{ revisionActual.puntajeTotal ?? '—' }} / {{ revisionActual.puntajeMaximo ?? '—' }}</strong>
+        <span>puntaje parcial</span>
+      </div>
+    </section>
+
+    @if (revisionActual.cantidadPendientes === 0) {
+      <div class="exito">
+        Todas las respuestas ya tienen calificación. Podés ajustar las notas manuales o volver a resultados.
+      </div>
+    }
+
+    <div class="preguntas">
+      @for (fila of filas(); track fila.pregunta.idExamenVersionPregunta; let indice = $index) {
+        <article class="pregunta" [class.pendiente]="fila.pregunta.necesitaRevision">
+          <div class="pregunta-cabecera">
+            <div>
+              <span class="numero">Pregunta {{ fila.pregunta.posicion }}</span>
+              <span class="puntos-maximos">Máximo: {{ fila.pregunta.puntos }}</span>
+            </div>
+            @if (fila.pregunta.necesitaRevision) {
+              <span class="pendiente-chip">Pendiente</span>
+            } @else if (fila.pregunta.metodoCorreccion === 'MANUAL') {
+              <span class="corregido-chip">Corregida a mano</span>
+            } @else {
+              <span class="auto-chip">Corrección automática</span>
+            }
+          </div>
+
+          <p class="enunciado">{{ fila.pregunta.enunciado }}</p>
+
+          @if (fila.pregunta.textoRespuesta !== null) {
+            <blockquote class="respuesta">{{ fila.pregunta.textoRespuesta }}</blockquote>
+          } @else {
+            <p class="sin-respuesta">El alumno no respondió esta pregunta.</p>
+          }
+
+          <div class="calificacion">
+            <label [for]="'puntos-' + indice">Puntos obtenidos</label>
+            <input
+              [id]="'puntos-' + indice"
+              type="number"
+              min="0"
+              [max]="fila.pregunta.puntos"
+              step="0.01"
+              [disabled]="!fila.pregunta.editable"
+              [value]="fila.puntos"
+              (input)="cambiarPuntos(indice, $any($event.target).value)"
+            />
+          </div>
+        </article>
+      }
+    </div>
+
+    <footer class="acciones">
+      <button type="button" class="boton-principal" [disabled]="guardando()" (click)="guardar()">
+        {{ guardando() ? 'Guardando...' : 'Guardar corrección' }}
+      </button>
+    </footer>
+  }
+</main>

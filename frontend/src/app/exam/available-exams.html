@@ -1,0 +1,91 @@
+<main class="pagina">
+  <header class="encabezado">
+    <div>
+      <h1 class="titulo">Mis exámenes</h1>
+      <p class="subtitulo">Exámenes publicados para tus grupos activos.</p>
+    </div>
+  </header>
+
+  @if (cargando()) {
+    <p class="aviso">Cargando tus exámenes...</p>
+  } @else if (mensajeError()) {
+    <p class="error">{{ mensajeError() }}</p>
+    <button type="button" class="boton-principal" (click)="cargar()">Reintentar</button>
+  } @else if (examenes().length === 0) {
+    <div class="vacio">
+      <strong>Todavía no tenés exámenes disponibles</strong>
+      Cuando tu docente publique un examen para uno de tus grupos, va a aparecer acá.
+    </div>
+  } @else {
+    <div class="examenes">
+      @for (examen of examenes(); track examen.id) {
+        <article class="examen">
+          <div class="examen-cabecera">
+            <span class="etiqueta">{{ examen.grupo ?? 'Examen' }}</span>
+            <span class="chip">{{ etiquetaEstado(examen) }}</span>
+          </div>
+
+          <h2 class="examen-titulo">{{ examen.titulo }}</h2>
+
+          @if (examen.descripcion) {
+            <p class="examen-descripcion">{{ examen.descripcion }}</p>
+          }
+
+          <ul class="datos">
+            <li>
+              <strong>{{ examen.cantidadPreguntas }}</strong>
+              <span>{{ examen.cantidadPreguntas === 1 ? 'pregunta' : 'preguntas' }}</span>
+            </li>
+            <li>
+              <strong>{{ examen.puntajeTotal }}</strong>
+              <span>{{ examen.puntajeTotal === 1 ? 'punto' : 'puntos' }}</span>
+            </li>
+            <li>
+              <strong>{{ etiquetaDuracion(examen) }}</strong>
+              <span>duración</span>
+            </li>
+          </ul>
+
+          <p class="examen-meta">
+            @if (examen.cierraEn) {
+              Cierra el {{ examen.cierraEn | date: 'dd/MM/yyyy HH:mm' }}.
+            } @else {
+              Sin fecha de cierre configurada.
+            }
+            @if (examen.intentosMaximos !== null) {
+              Intentos usados: {{ examen.intentosUsados }} de {{ examen.intentosMaximos }}.
+            }
+          </p>
+
+          @if (examen.resultadoDisponible && examen.ultimoPuntaje !== null) {
+            <p class="resultado">
+              Resultado: <strong>{{ examen.ultimoPuntaje }} / {{ examen.ultimoPuntajeMaximo }}</strong>
+            </p>
+          } @else if (examen.ultimoIntentoEstado === 'GRADING') {
+            <p class="examen-meta">Tu intento está en corrección.</p>
+          } @else if (examen.ultimoIntentoEstado === 'GRADED') {
+            <p class="examen-meta">Resultado corregido, pendiente de liberación.</p>
+          }
+
+          <div class="acciones">
+            @if (examen.resultadoDisponible && examen.ultimoIntentoId) {
+              <a class="boton-principal" [routerLink]="['/resultado', examen.ultimoIntentoId]">Ver resultado</a>
+            }
+            @if (examen.intentoEnCurso) {
+              <a class="boton-secundario" [routerLink]="['/examen', examen.id]">Reanudar examen</a>
+            } @else if (examen.puedeIniciar) {
+              <a
+                [class]="examen.resultadoDisponible ? 'boton-secundario' : 'boton-principal'"
+                [routerLink]="['/examen', examen.id]"
+              >
+                Comenzar examen
+              </a>
+            } @else if (!examen.resultadoDisponible) {
+              <p class="no-disponible">{{ motivoNoDisponible(examen) }}</p>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</main>

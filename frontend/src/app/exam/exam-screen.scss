@@ -90,6 +90,47 @@
         background: var(--verde-fondo, #e6f6ec);
         color: var(--verde, #1e7a43);
     }
+
+    &.con-error {
+        background: #fdecec;
+        color: #b42318;
+    }
+}
+
+.volver {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: var(--violeta);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.nota-intento,
+.error-guardado,
+.pregunta-no-soportada {
+    margin: 0 0 20px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.nota-intento {
+    background: var(--lila-tarjeta);
+    border: 1px solid var(--lila-borde);
+    color: var(--oscuro);
+}
+
+.error-guardado,
+.pregunta-no-soportada {
+    background: #fdecec;
+    border: 1px solid #f3c4c4;
+    color: #b42318;
 }
 
 .progreso {
@@ -497,6 +538,12 @@
     }
 }
 
+.entregado .boton {
+    display: inline-flex;
+    margin: 18px 6px 0;
+    text-decoration: none;
+}
+
 .entregado-icono.alerta {
     background: var(--rojo-fondo, #fdecec);
     color: var(--rojo, #b42318);
@@ -638,7 +685,6 @@
     font-size: 14px;
 }
 
-// En pantallas chicas la lista de preguntas pasa a ser una fila de números
 @media (max-width: 900px) {
     .contenido {
         grid-template-columns: 1fr;

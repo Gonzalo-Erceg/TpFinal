@@ -106,7 +106,7 @@
         <p class="error">{{ mensajeError() }}</p>
         }
         <div class="acciones">
-            <a class="boton-secundario" routerLink="/preguntas">Cancelar</a>
+            <app-back-link destino="/preguntas" etiqueta="Cancelar" />
             <button type="button" class="boton-principal" [disabled]="guardando()" (click)="guardar()">
                 {{ guardando() ? 'Guardando...' : 'Guardar' }}
             </button>

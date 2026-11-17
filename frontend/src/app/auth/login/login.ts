@@ -3,9 +3,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { BackLink } from '../../shared/back-link/back-link';
 @Component({
   selector: 'app-inicio-sesion',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, BackLink],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -15,7 +16,6 @@ export class InicioSesion {
 
   private ruta = inject(ActivatedRoute);
 
-  // Viene del registro: /login?registrado=si
   registroExitoso = this.ruta.snapshot.queryParamMap.get('registrado') === 'si';
 
   formulario = new FormGroup({
@@ -43,7 +43,7 @@ export class InicioSesion {
     this.autenticacion.login(email, contrasena).subscribe({
       next: (respuesta) => {
         this.cargando.set(false);
-        
+
         const rutasPorRol = {
           STUDENT: '/grupos',
           TEACHER: '/profesor',

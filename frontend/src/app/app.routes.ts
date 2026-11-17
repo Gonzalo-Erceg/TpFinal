@@ -2,6 +2,8 @@
 import { Routes } from '@angular/router';
 
 import { PantallaExamen } from './exam/exam-screen';
+import { ListaExamenesAlumno } from './exam/available-exams';
+import { ResultadoExamenPantalla } from './exam/resultado-examen';
 import { ListaGrupos } from './groups/groups-list';
 import { InicioSesion } from './auth/login/login';
 import { Registro } from './auth/register/register';
@@ -9,6 +11,10 @@ import { Landing } from './landing/landing';
 import { GruposProfesor } from './groups/teacher-groups';
 import { BancoPreguntas } from './questions/question-bank';
 import { FormularioPregunta } from './questions/question-form';
+import { ListaExamenes } from './exams/exams-list';
+import { FormularioExamen } from './exams/exam-form';
+import { ResultadosExamen } from './exams/exams-results';
+import { RevisionIntentoPantalla } from './exams/attempt-review';
 
 import { authGuard } from './core/auth/auth.guard';
 import { roleGuard } from './core/auth/role.guard';
@@ -27,14 +33,32 @@ export const routes: Routes = [
         data: { role: 'STUDENT' },
     },
     {
-        path: 'examen',
+        path: 'examenes',
+        component: ListaExamenesAlumno,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
+    },
+    {
+        path: 'examen/:id',
         component: PantallaExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'STUDENT' },
+    },
+    {
+        path: 'examen',
+        redirectTo: 'examenes',
+        pathMatch: 'full',
+    },
+    {
+        path: 'resultado/:intentoId',
+        component: ResultadoExamenPantalla,
         canActivate: [authGuard, roleGuard],
         data: { role: 'STUDENT' },
     },
     {
         path: 'profesor',
         component: GruposProfesor,
+        pathMatch: 'full',
         canActivate: [authGuard, roleGuard],
         data: { role: 'TEACHER' },
     },
@@ -53,6 +77,37 @@ export const routes: Routes = [
     {
         path: 'preguntas/:id/editar',
         component: FormularioPregunta,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes',
+        component: ListaExamenes,
+        pathMatch: 'full',
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/nuevo',
+        component: FormularioExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/:id/editar',
+        component: FormularioExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/:id/resultados',
+        component: ResultadosExamen,
+        canActivate: [authGuard, roleGuard],
+        data: { role: 'TEACHER' },
+    },
+    {
+        path: 'profesor/examenes/:id/intentos/:intentoId/revisar',
+        component: RevisionIntentoPantalla,
         canActivate: [authGuard, roleGuard],
         data: { role: 'TEACHER' },
     },

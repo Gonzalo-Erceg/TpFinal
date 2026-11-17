@@ -10,6 +10,14 @@
   "/questions":{
     "target": "http://localhost:3000/",
     "secure": false
+  },
+  "/exams": {
+    "target": "http://localhost:3000/",
+    "secure": false
+  },
+  "/attempts": {
+    "target": "http://localhost:3000/",
+    "secure": false
   }
 
 }

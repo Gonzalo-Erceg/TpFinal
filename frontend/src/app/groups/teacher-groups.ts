@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { GruposService } from './groups.service';
 import { GrupoDelProfesor, Alumno, EstadoAlumno } from './group.model';
 import { DialogoCrearGrupo } from './create-group-dialog';
-import { DatePipe } from '@angular/common';
 
 
 @Component({
@@ -14,7 +14,6 @@ import { DatePipe } from '@angular/common';
 export class GruposProfesor implements OnInit {
   private grupoService = inject(GruposService);
 
-  //Estado de la pantalla
   grupos = signal<GrupoDelProfesor[]>([]);
   cargando = signal(true);
   mensajeError = signal<string | null>(null);
@@ -26,7 +25,6 @@ export class GruposProfesor implements OnInit {
   errorMiembros = signal<string | null>(null);
   errorAccion = signal<string |null>(null);
 
-  // Texto que se muestra para cada estado
   etiquetasEstado: Record<EstadoAlumno, string> = {
     PENDING: 'Pendiente',
     ACTIVE: 'Activo',
@@ -62,7 +60,6 @@ export class GruposProfesor implements OnInit {
     this.mostrarDialogo.set(false);
   }
 
-  // Se ejecuta cuando el diálogo avisa que se creó un grupo
   alCrearGrupo(grupo: GrupoDelProfesor): void {
     this.grupos.update((lista) => [...lista, grupo]);
     this.mostrarDialogo.set(false);
@@ -78,7 +75,6 @@ export class GruposProfesor implements OnInit {
     });
   }
 
-  //Se ejecuta al hacer clic en "Ver solicitudes"
   seleccionarGrupo(grupo: GrupoDelProfesor): void {
     this.grupoSeleccionado.set(grupo);
     this.errorAccion.set(null);

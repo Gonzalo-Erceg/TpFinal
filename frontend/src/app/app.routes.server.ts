@@ -10,19 +10,49 @@ export const serverRoutes: ServerRoute[] = [
         renderMode: RenderMode.Client
     },
 
-    // Estudiantes
     {
         path: 'grupos',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'examenes',
         renderMode: RenderMode.Client
     },
     {
         path: 'examen',
         renderMode: RenderMode.Client
     },
+    {
+        path: 'examen/:id',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'resultado/:intentoId',
+        renderMode: RenderMode.Client
+    },
 
-    // Docentes
     {
         path: 'profesor',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes/nuevo',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes/:id/editar',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes/:id/resultados',
+        renderMode: RenderMode.Client
+    },
+    {
+        path: 'profesor/examenes/:id/intentos/:intentoId/revisar',
         renderMode: RenderMode.Client
     },
     {

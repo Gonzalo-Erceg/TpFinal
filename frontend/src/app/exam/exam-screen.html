@@ -3,12 +3,13 @@
     <p class="aviso">Cargando el examen...</p>
   } @else if (mensajeError()) {
     <p class="error">{{ mensajeError() }}</p>
-    <button type="button" class="boton" (click)="cargarExamen()">Reintentar</button>
+    <button type="button" class="boton" (click)="cargar()">Reintentar</button>
+    <a class="volver" routerLink="/examenes">Volver a mis exámenes</a>
   } @else if (estadoExamen() === 'entregado') {
     <section class="entregado" role="status">
       <span class="entregado-icono" aria-hidden="true">✓</span>
       <h1 class="entregado-titulo">Examen entregado</h1>
-      <p class="entregado-examen">{{ examen()?.materia }} · {{ examen()?.titulo }}</p>
+      <p class="entregado-examen">{{ examen()?.grupo ?? 'Examen' }} · {{ examen()?.titulo }}</p>
       @if (salioDePantallaCompleta()) {
         <p class="entregado-motivo">
           <span aria-hidden="true">⚠</span> Se entregó automáticamente porque no volviste a la pantalla completa.
@@ -16,8 +17,23 @@
       }
       <p class="entregado-detalle">
         Respondiste <strong>{{ respondidas() }} de {{ totalPreguntas() }}</strong> preguntas.
-        Vas a poder ver el resultado cuando tu docente lo habilite.
       </p>
+      @if (entrega(); as envio) {
+        @if (envio.resultadoDisponible) {
+          <p class="entregado-detalle">Tu examen ya está corregido y el resultado está disponible.</p>
+          <a class="boton" [routerLink]="['/resultado', envio.intentoId]">Ver resultado</a>
+        } @else if (envio.estado === 'GRADING') {
+          <p class="entregado-detalle">
+            Tu examen tiene preguntas que requieren revisión manual. Vas a poder ver el resultado cuando el
+            docente lo libere.
+          </p>
+        } @else {
+          <p class="entregado-detalle">Vas a poder ver el resultado cuando tu docente lo habilite.</p>
+        }
+      } @else {
+        <p class="entregado-detalle">Vas a poder ver el resultado cuando tu docente lo habilite.</p>
+      }
+      <a class="boton secundario" routerLink="/examenes">Volver a mis exámenes</a>
     </section>
   } @else if (salioDePantallaCompleta()) {
     <section class="entregado">
@@ -46,15 +62,21 @@
       }
       <button type="button" class="boton" (click)="volverAPantallaCompleta()">Volver a pantalla completa</button>
     </section>
-  } @else if (enInstrucciones() && examen(); as examenCargado) {
+  } @else if (enInstrucciones()) {
     <section class="instrucciones" aria-labelledby="titulo-instrucciones">
-      <p class="etiqueta">{{ examenCargado.materia }}</p>
-      <h1 class="titulo" id="titulo-instrucciones">{{ examenCargado.titulo }}</h1>
-      <p class="instrucciones-subtitulo">Instrucciones del examen</p>
+      <a class="volver" routerLink="/examenes">← Volver a mis exámenes</a>
+
+      <p class="etiqueta">{{ grupo() ?? 'Examen' }}</p>
+      <h1 class="titulo" id="titulo-instrucciones">{{ titulo() }}</h1>
+      @if (disponible()?.descripcion) {
+        <p class="instrucciones-subtitulo">{{ disponible()?.descripcion }}</p>
+      } @else {
+        <p class="instrucciones-subtitulo">Instrucciones del examen</p>
+      }
 
       <ul class="datos">
         <li>
-          <strong>{{ examenCargado.duracionMinutos }} min</strong>
+          <strong>{{ etiquetaDuracion() }}</strong>
           <span>Tiempo límite</span>
         </li>
         <li>
@@ -67,12 +89,23 @@
         </li>
       </ul>
 
+      @if (intentoEnCurso()) {
+        <p class="nota-intento" role="status">
+          <span aria-hidden="true">⟳</span>
+          Tenés un intento en curso. Al reanudarlo, el tiempo sigue corriendo desde donde quedó.
+        </p>
+      }
+
       <h2 class="instrucciones-seccion">Antes de empezar</h2>
       <ul class="reglas">
         <li>
           <span aria-hidden="true">⏱</span>
-          Tenés {{ examenCargado.duracionMinutos }} minutos desde que tocás "Comenzar examen". El tiempo sigue
-          corriendo aunque cambies de pregunta.
+          @if (duracionMinutos() !== null) {
+            Tenés {{ duracionMinutos() }} minutos desde que tocás "Comenzar examen". El tiempo sigue
+            corriendo aunque cambies de pregunta.
+          } @else {
+            El tiempo límite lo marca la fecha de cierre del examen.
+          }
         </li>
         <li>
           <span aria-hidden="true">✓</span>
@@ -97,11 +130,17 @@
               @case ('CHOICE') {
                 elegí una sola opción.
               }
+              @case ('MULTIPLE_CHOICE') {
+                podés marcar más de una opción.
+              }
               @case ('TRUE_FALSE') {
                 indicá si la afirmación es verdadera o falsa.
               }
               @case ('SHORT_TEXT') {
                 escribí tu respuesta, hasta {{ limiteTextoCorto }} caracteres.
+              }
+              @case ('ESSAY') {
+                escribí tu respuesta, hasta {{ limiteDesarrollo }} caracteres.
               }
             }
           </li>
@@ -117,6 +156,10 @@
         </p>
       </div>
 
+      @if (motivoNoInicia()) {
+        <p class="error" role="alert">{{ motivoNoInicia() }}</p>
+      }
+
       @if (errorInicio()) {
         <p class="error" role="alert">{{ errorInicio() }}</p>
       }
@@ -125,15 +168,21 @@
         type="button"
         class="boton comenzar"
         (click)="comenzarExamen()"
-        [disabled]="estadoExamen() === 'comenzando'"
+        [disabled]="estadoExamen() === 'comenzando' || !puedeIniciar()"
       >
-        {{ estadoExamen() === 'comenzando' ? 'Iniciando...' : 'Comenzar examen' }}
+        @if (estadoExamen() === 'comenzando') {
+          Iniciando...
+        } @else if (intentoEnCurso()) {
+          Reanudar examen
+        } @else {
+          Comenzar examen
+        }
       </button>
     </section>
   } @else if (examen(); as examenCargado) {
     <header class="encabezado">
       <div>
-        <p class="etiqueta">{{ examenCargado.materia }}</p>
+        <p class="etiqueta">{{ examenCargado.grupo ?? 'Examen' }}</p>
         <h1 class="titulo">{{ examenCargado.titulo }}</h1>
       </div>
 
@@ -150,13 +199,22 @@
         </p>
       }
 
-      <p class="guardado" role="status" [class.guardando]="estadoGuardado() === 'guardando'" [class.listo]="estadoGuardado() === 'guardado'">
+      <p
+        class="guardado"
+        role="status"
+        [class.guardando]="estadoGuardado() === 'guardando'"
+        [class.listo]="estadoGuardado() === 'guardado'"
+        [class.con-error]="estadoGuardado() === 'error'"
+      >
         @switch (estadoGuardado()) {
           @case ('guardando') {
             <span aria-hidden="true">⟳</span> Guardando...
           }
           @case ('guardado') {
             <span aria-hidden="true">✓</span> Guardado
+          }
+          @case ('error') {
+            <span aria-hidden="true">⚠</span> No se pudo guardar
           }
         }
       </p>
@@ -177,6 +235,18 @@
         </div>
       </div>
     </header>
+
+    @if (errorGuardado()) {
+      <p class="error-guardado" role="alert">{{ errorGuardado() }}</p>
+    }
+
+    @if (estadoExamen() === 'entregando') {
+      <p class="nota-intento" role="status">Entregando el examen con las respuestas que tenés...</p>
+    }
+
+    @if (errorEntrega()) {
+      <p class="error-guardado" role="alert">{{ errorEntrega() }}</p>
+    }
 
     <div class="contenido">
       <nav class="navegador" aria-label="Preguntas del examen">
@@ -227,6 +297,14 @@
                 (respuestaCambiada)="guardarRespuesta($event)"
               />
             }
+            @case ('MULTIPLE_CHOICE') {
+              <app-respuesta-choice
+                [pregunta]="pregunta"
+                [respuesta]="respuestaActual()"
+                [multiple]="true"
+                (respuestaCambiada)="guardarRespuesta($event)"
+              />
+            }
             @case ('TRUE_FALSE') {
               <app-respuesta-true-false
                 [pregunta]="pregunta"
@@ -240,6 +318,19 @@
                 [respuesta]="respuestaActual()"
                 (respuestaCambiada)="guardarRespuesta($event)"
               />
+            }
+            @case ('ESSAY') {
+              <app-respuesta-short-text
+                [pregunta]="pregunta"
+                [respuesta]="respuestaActual()"
+                [limite]="limiteDesarrollo"
+                (respuestaCambiada)="guardarRespuesta($event)"
+              />
+            }
+            @default {
+              <p class="pregunta-no-soportada" role="alert">
+                Este tipo de pregunta todavía no se puede responder desde acá.
+              </p>
             }
           }
 

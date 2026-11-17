@@ -1,8 +1,8 @@
 import { Component, computed, input, output } from '@angular/core';
 import { Pregunta, Respuesta } from './exam.model';
 
-// Límite supuesto para respuestas cortas, confirmar con el equipo
 export const LIMITE_CARACTERES = 300;
+export const LIMITE_DESARROLLO = 5000;
 
 @Component({
   selector: 'app-respuesta-short-text',
@@ -12,9 +12,8 @@ export const LIMITE_CARACTERES = 300;
 export class RespuestaShortText {
   pregunta = input.required<Pregunta>();
   respuesta = input<Respuesta | undefined>();
+  limite = input(LIMITE_CARACTERES);
   respuestaCambiada = output<string>();
-
-  limite = LIMITE_CARACTERES;
 
   texto = computed(() => {
     const valor = this.respuesta();

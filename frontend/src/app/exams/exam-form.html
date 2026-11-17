@@ -1,0 +1,174 @@
+<main class="pagina">
+  <header class="encabezado">
+    <div>
+      <h1 class="titulo">{{ examenId() ? 'Editar examen' : 'Nuevo examen' }}</h1>
+      @if (soloLectura()) {
+      <p class="subtitulo">Este examen está {{ etiquetaEstado() }} y no se puede editar.</p>
+      } @else {
+      <p class="subtitulo">Completá los datos, elegí las preguntas y asigná los grupos.</p>
+      }
+    </div>
+    <app-back-link destino="/profesor/examenes" etiqueta="Volver a exámenes" />
+  </header>
+
+  @if (cargando()) {
+  <p class="aviso">Cargando el examen...</p>
+  } @else {
+  @if (mensajeExito()) {
+  <p class="exito">{{ mensajeExito() }}</p>
+  }
+
+  @if (mensajeError()) {
+  <p class="error">{{ mensajeError() }}</p>
+  }
+
+  <form class="formulario" [formGroup]="formulario" (ngSubmit)="publicar()">
+    <section class="seccion">
+      <h2 class="seccion-titulo">Datos del examen</h2>
+
+      <div class="campos">
+        <label class="campo campo-ancho">
+          <span>Título</span>
+          <input type="text" formControlName="titulo" maxlength="200" placeholder="Primer parcial">
+        </label>
+
+        <label class="campo campo-ancho">
+          <span>Descripción</span>
+          <textarea formControlName="descripcion" rows="3"
+            placeholder="Unidades y temas incluidos (opcional)"></textarea>
+        </label>
+
+        <label class="campo">
+          <span>Apertura</span>
+          <input type="datetime-local" formControlName="abreEn">
+        </label>
+
+        <label class="campo">
+          <span>Cierre</span>
+          <input type="datetime-local" formControlName="cierraEn">
+        </label>
+
+        <label class="campo">
+          <span>Duración (minutos)</span>
+          <input type="number" min="1" step="1" formControlName="duracionMinutos">
+        </label>
+
+        <label class="campo">
+          <span>Intentos máximos</span>
+          <input type="number" min="1" step="1" formControlName="intentosMaximos">
+        </label>
+
+        <label class="campo">
+          <span>Liberación de resultados</span>
+          <select formControlName="modoLiberacion">
+            <option value="MANUAL">Manual (el docente los libera)</option>
+            <option value="IMMEDIATE">Inmediata al corregir</option>
+            <option value="ON_CLOSE">Al cerrar el examen</option>
+          </select>
+        </label>
+
+        <label class="campo campo-check">
+          <input type="checkbox" formControlName="mostrarCorrectas">
+          <span>Mostrar las respuestas correctas en el resultado</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="seccion">
+      <div class="seccion-cabecera">
+        <h2 class="seccion-titulo">Preguntas</h2>
+        <span class="contador">{{ seleccionadas().length }} seleccionadas</span>
+      </div>
+
+      @if (seleccionadas().length === 0) {
+      <p class="aviso">Todavía no elegiste preguntas. Marcá al menos una del banco.</p>
+      } @else {
+      <ol class="seleccionadas">
+        @for (pregunta of seleccionadas(); track pregunta.preguntaId; let i = $index) {
+        <li class="seleccionada">
+          <div class="seleccionada-info">
+            <strong>{{ i + 1 }}. {{ pregunta.titulo || 'Sin título' }}</strong>
+            <span class="detalle">{{ etiquetasTipo[pregunta.tipo] }} · {{ pregunta.enunciado }}</span>
+          </div>
+
+          <label class="puntos">
+            <span>Puntos</span>
+            <input type="number" min="0" step="0.5" [value]="pregunta.puntos" [disabled]="soloLectura()"
+              (change)="cambiarPuntos(i, $event)">
+          </label>
+
+          <div class="botones-orden">
+            <button type="button" class="boton-icono" title="Subir" [disabled]="soloLectura() || i === 0"
+              (click)="moverPregunta(i, -1)">↑</button>
+            <button type="button" class="boton-icono" title="Bajar"
+              [disabled]="soloLectura() || i === seleccionadas().length - 1" (click)="moverPregunta(i, 1)">↓</button>
+            <button type="button" class="boton-quitar" [disabled]="soloLectura()" (click)="quitarPregunta(i)">
+              Quitar
+            </button>
+          </div>
+        </li>
+        }
+      </ol>
+      }
+
+      <div class="banco-cabecera">
+        <span class="banco-titulo">Banco de preguntas</span>
+        <input class="buscador" type="search" placeholder="Buscar por título o enunciado"
+          [value]="filtroPreguntas()" (input)="cambiarFiltro($event)">
+      </div>
+
+      @if (preguntasFiltradas().length === 0) {
+      <p class="aviso">No hay preguntas que coincidan. Creá preguntas desde el banco primero.</p>
+      } @else {
+      <div class="banco">
+        @for (pregunta of preguntasFiltradas(); track pregunta.id) {
+        <label class="banco-item" [class.marcada]="estaPreguntaSeleccionada(pregunta.id)">
+          <input type="checkbox" [checked]="estaPreguntaSeleccionada(pregunta.id)" [disabled]="soloLectura()"
+            (change)="alternarPregunta(pregunta)">
+          <span class="banco-item-texto">
+            <strong>{{ pregunta.titulo || 'Sin título' }}</strong>
+            <span class="detalle">{{ etiquetasTipo[pregunta.tipo] }} · {{ pregunta.enunciado }}</span>
+          </span>
+        </label>
+        }
+      </div>
+      }
+    </section>
+
+    <section class="seccion">
+      <div class="seccion-cabecera">
+        <h2 class="seccion-titulo">Grupos</h2>
+        <span class="contador">{{ gruposSeleccionados().length }} asignados</span>
+      </div>
+
+      @if (grupos().length === 0) {
+      <p class="aviso">No tenés grupos activos. Creá uno desde "Mis grupos" antes de publicar.</p>
+      } @else {
+      <div class="grupos">
+        @for (grupo of grupos(); track grupo.id) {
+        <label class="grupo" [class.marcado]="estaGrupoSeleccionado(grupo.id)">
+          <input type="checkbox" [checked]="estaGrupoSeleccionado(grupo.id)" [disabled]="soloLectura()"
+            (change)="alternarGrupo(grupo.id)">
+          <span class="grupo-nombre">{{ grupo.nombre }}</span>
+          <span class="grupo-codigo">{{ grupo.codigoDeAcceso }}</span>
+        </label>
+        }
+      </div>
+      }
+    </section>
+
+    <div class="acciones">
+      <app-back-link destino="/profesor/examenes" etiqueta="Cancelar" />
+
+      @if (!soloLectura()) {
+      <button type="button" class="boton-secundario" [disabled]="guardando() || publicando()" (click)="guardar()">
+        Guardar borrador
+      </button>
+      <button type="submit" class="boton-principal" [disabled]="guardando() || publicando()">
+        {{ publicando() ? 'Publicando...' : 'Publicar' }}
+      </button>
+      }
+    </div>
+  </form>
+  }
+</main>
