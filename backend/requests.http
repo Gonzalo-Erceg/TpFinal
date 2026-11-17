@@ -31,7 +31,9 @@ Content-Type: application/json
     "opensAt": "2026-11-20T12:00:00.000Z",
     "closesAt": "2026-11-20T14:00:00.000Z",
     "durationMinutes": 90,
-    "maxAttempts": 1
+    "maxAttempts": 1,
+    "resultsReleaseMode": "MANUAL",
+    "showCorrectAnswers": false
 }
 
 ### Listar exámenes del docente
@@ -54,6 +56,8 @@ Content-Type: application/json
     "closesAt": "2026-11-20T14:00:00.000Z",
     "durationMinutes": 90,
     "maxAttempts": 1,
+    "resultsReleaseMode": "MANUAL",
+    "showCorrectAnswers": true,
     "groupIds": ["GROUP_ID"],
     "questions": [
         { "questionId": "QUESTION_ID", "points": 2, "position": 1 }
@@ -62,6 +66,14 @@ Content-Type: application/json
 
 ### Cerrar
 POST http://localhost:3000/exams/EXAM_ID/close
+Authorization: Bearer TOKEN
+
+### Liberar resultados a los alumnos
+POST http://localhost:3000/exams/EXAM_ID/release-results
+Authorization: Bearer TOKEN
+
+### Resultados del examen: intentos y puntajes
+GET http://localhost:3000/exams/EXAM_ID/attempts
 Authorization: Bearer TOKEN
 
 ### Alumno: exámenes disponibles

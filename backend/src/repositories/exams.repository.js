@@ -19,10 +19,20 @@ class ExamsRepository {
                 .input('closesAt', sql.DateTime2, data.closesAt ? new Date(data.closesAt) : null)
                 .input('durationMinutes', sql.Int, data.durationMinutes ?? null)
                 .input('maxAttempts', sql.Int, data.maxAttempts ?? null)
+                .input('resultsReleaseMode', sql.NVarChar(15), data.resultsReleaseMode ?? 'MANUAL')
+                .input('showCorrectAnswers', sql.Bit, data.showCorrectAnswers ? 1 : 0)
                 .query(`
-                    INSERT INTO Exams (TeacherId, Title, Description, Status, OpensAt, ClosesAt, DurationMinutes, MaxAttempts, AttemptsScope)
+                    INSERT INTO Exams (
+                        TeacherId, Title, Description, Status, OpensAt, ClosesAt,
+                        DurationMinutes, MaxAttempts, AttemptsScope,
+                        ResultsReleaseMode, ShowCorrectAnswers
+                    )
                     OUTPUT INSERTED.Id
-                    VALUES (@teacherId, @title, @description, 'DRAFT', @opensAt, @closesAt, @durationMinutes, @maxAttempts, 'EXAM')
+                    VALUES (
+                        @teacherId, @title, @description, 'DRAFT', @opensAt, @closesAt,
+                        @durationMinutes, @maxAttempts, 'EXAM',
+                        @resultsReleaseMode, @showCorrectAnswers
+                    )
                 `);
 
             const examId = examResult.recordset[0].Id;
@@ -83,6 +93,9 @@ class ExamsRepository {
                     e.DurationMinutes,
                     e.MaxAttempts,
                     e.AttemptsScope,
+                    e.ResultsReleaseMode,
+                    e.ResultsReleasedAt,
+                    e.ShowCorrectAnswers,
                     e.CreatedAt,
                     e.UpdatedAt,
                     (
@@ -90,6 +103,12 @@ class ExamsRepository {
                         FROM ExamVersionQuestions q
                         WHERE q.ExamVersionId = e.CurrentVersionId
                     ) AS QuestionCount,
+                    (
+                        SELECT COUNT(*)
+                        FROM ExamAttempts a
+                        WHERE a.ExamId = e.Id
+                          AND a.Status <> 'CANCELLED'
+                    ) AS AttemptCount,
                     STUFF((
                         SELECT ',' + CONVERT(nvarchar(36), eg.GroupId)
                         FROM ExamGroups eg
@@ -148,6 +167,9 @@ class ExamsRepository {
                     e.DurationMinutes,
                     e.MaxAttempts,
                     e.AttemptsScope,
+                    e.ResultsReleaseMode,
+                    e.ResultsReleasedAt,
+                    e.ShowCorrectAnswers,
                     e.CreatedAt,
                     e.UpdatedAt,
                     (
@@ -155,6 +177,12 @@ class ExamsRepository {
                         FROM ExamVersionQuestions q
                         WHERE q.ExamVersionId = e.CurrentVersionId
                     ) AS QuestionCount,
+                    (
+                        SELECT COUNT(*)
+                        FROM ExamAttempts a
+                        WHERE a.ExamId = e.Id
+                          AND a.Status <> 'CANCELLED'
+                    ) AS AttemptCount,
                     STUFF((
                         SELECT ',' + CONVERT(nvarchar(36), eg.GroupId)
                         FROM ExamGroups eg
@@ -319,6 +347,8 @@ class ExamsRepository {
                 .input('closesAt', sql.DateTime2, data.closesAt ? new Date(data.closesAt) : null)
                 .input('durationMinutes', sql.Int, data.durationMinutes ?? null)
                 .input('maxAttempts', sql.Int, data.maxAttempts ?? null)
+                .input('resultsReleaseMode', sql.NVarChar(15), data.resultsReleaseMode ?? 'MANUAL')
+                .input('showCorrectAnswers', sql.Bit, data.showCorrectAnswers ? 1 : 0)
                 .query(`
                     UPDATE Exams
                     SET Title = @title,
@@ -327,6 +357,8 @@ class ExamsRepository {
                         ClosesAt = @closesAt,
                         DurationMinutes = @durationMinutes,
                         MaxAttempts = @maxAttempts,
+                        ResultsReleaseMode = @resultsReleaseMode,
+                        ShowCorrectAnswers = @showCorrectAnswers,
                         UpdatedAt = SYSUTCDATETIME()
                     WHERE Id = @examId
                 `);
@@ -433,6 +465,59 @@ class ExamsRepository {
 
             throw error;
         }
+    }
+
+    async releaseResults(examId, teacherId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                UPDATE Exams
+                SET ResultsReleasedAt = COALESCE(ResultsReleasedAt, SYSUTCDATETIME()),
+                    UpdatedAt = SYSUTCDATETIME()
+                OUTPUT
+                    INSERTED.Status AS Status,
+                    INSERTED.ResultsReleasedAt AS ResultsReleasedAt,
+                    INSERTED.ResultsReleaseMode AS ResultsReleaseMode
+                WHERE Id = @examId
+                  AND TeacherId = @teacherId
+                  AND Status <> 'DRAFT'
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findAttemptsByExam(examId, teacherId) {
+        const db = await pool;
+
+        const result = await db.request()
+            .input('examId', sql.UniqueIdentifier, examId)
+            .input('teacherId', sql.UniqueIdentifier, teacherId)
+            .query(`
+                SELECT
+                    a.Id,
+                    a.StudentId,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    a.ExamAttemptNumber,
+                    a.Status,
+                    a.StartedAt,
+                    a.SubmittedAt,
+                    a.TotalScore,
+                    a.MaxScore,
+                    a.GradedAt
+                FROM ExamAttempts a
+                JOIN Exams e ON e.Id = a.ExamId
+                JOIN Users u ON u.Id = a.StudentId
+                WHERE a.ExamId = @examId
+                  AND e.TeacherId = @teacherId
+                ORDER BY a.StartedAt DESC
+            `);
+
+        return result.recordset;
     }
 
 }

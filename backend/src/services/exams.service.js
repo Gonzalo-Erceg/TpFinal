@@ -3,9 +3,20 @@ const AuthError = require('../utils/auth-error');
 
 const examsRepository = new ExamsRepository();
 const FORMATO_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MODOS_LIBERACION = ['IMMEDIATE', 'ON_CLOSE', 'MANUAL'];
 
 function esGuid(value) {
     return typeof value === 'string' && FORMATO_GUID.test(value);
+}
+
+function aNumero(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const numero = Number(value);
+
+    return Number.isFinite(numero) ? numero : null;
 }
 
 function aIso(value) {
@@ -51,6 +62,16 @@ function validarDatosExamen(data) {
         if (!Number.isInteger(maxAttempts) || maxAttempts <= 0) {
             throw new AuthError('La cantidad máxima de intentos debe ser un número entero mayor a 0');
         }
+    }
+
+    if (data.resultsReleaseMode !== undefined && data.resultsReleaseMode !== null &&
+        !MODOS_LIBERACION.includes(data.resultsReleaseMode)) {
+        throw new AuthError('El modo de liberación de resultados no es válido');
+    }
+
+    if (data.showCorrectAnswers !== undefined && data.showCorrectAnswers !== null &&
+        typeof data.showCorrectAnswers !== 'boolean') {
+        throw new AuthError('La opción de mostrar respuestas correctas no es válida');
     }
 }
 
@@ -127,8 +148,28 @@ function toExamSummary(row) {
         attemptsScope: row.AttemptsScope,
         groupIds: toGroupIds(row.GroupIdsCsv),
         questionCount: row.QuestionCount ?? 0,
+        attemptCount: Number(row.AttemptCount ?? 0),
+        resultsReleaseMode: row.ResultsReleaseMode ?? 'MANUAL',
+        resultsReleasedAt: aIso(row.ResultsReleasedAt),
+        showCorrectAnswers: Boolean(row.ShowCorrectAnswers),
         createdAt: aIso(row.CreatedAt),
         updatedAt: aIso(row.UpdatedAt),
+    };
+}
+
+function toAttempt(row) {
+    return {
+        attemptId: row.Id,
+        studentId: row.StudentId,
+        studentName: `${row.FirstName ?? ''} ${row.LastName ?? ''}`.trim(),
+        studentEmail: row.Email,
+        attemptNumber: row.ExamAttemptNumber,
+        status: row.Status,
+        startedAt: aIso(row.StartedAt),
+        submittedAt: aIso(row.SubmittedAt),
+        totalScore: aNumero(row.TotalScore),
+        maxScore: aNumero(row.MaxScore),
+        gradedAt: aIso(row.GradedAt),
     };
 }
 
@@ -262,6 +303,51 @@ class ExamsService {
         }
 
         return examsRepository.close(examId, user.id);
+    }
+
+    async releaseResults(examId, user) {
+        if (!esGuid(examId)) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        const exam = await examsRepository.findByIdAndTeacher(examId, user.id);
+
+        if (!exam) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        if (exam.Status === 'DRAFT') {
+            throw new AuthError('El examen todavía no fue publicado', 409);
+        }
+
+        const resultado = await examsRepository.releaseResults(examId, user.id);
+
+        if (!resultado) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        return {
+            id: examId,
+            status: resultado.Status,
+            resultsReleaseMode: resultado.ResultsReleaseMode,
+            resultsReleasedAt: aIso(resultado.ResultsReleasedAt),
+        };
+    }
+
+    async listAttempts(examId, user) {
+        if (!esGuid(examId)) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        const exam = await examsRepository.findByIdAndTeacher(examId, user.id);
+
+        if (!exam) {
+            throw new AuthError('El examen no existe', 404);
+        }
+
+        const rows = await examsRepository.findAttemptsByExam(examId, user.id);
+
+        return rows.map(toAttempt);
     }
 }
 

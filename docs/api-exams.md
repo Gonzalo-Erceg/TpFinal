@@ -2,7 +2,7 @@
 
 Documento de referencia para el backend y el frontend. Define el alcance del flujo de exámenes, los estados, los DTOs y las reglas de autorización que deben implementarse.
 
-> Estado: contrato de trabajo para las etapas P0. El flujo docente y el flujo P0 del alumno están implementados (backend y frontend); la corrección automática/manual y la liberación de resultados quedan para P1.
+> Estado: contrato de trabajo para las etapas P0 y P1. El flujo docente, el flujo del alumno y la corrección automática con liberación de resultados están implementados (backend y frontend). La revisión manual de preguntas de desarrollo queda pendiente.
 
 ## 1. Alcance
 
@@ -110,6 +110,10 @@ Todas las fechas se intercambian en ISO 8601 UTC (`2026-11-17T18:30:00.000Z`) y 
   "attemptsScope": "EXAM",
   "groupIds": ["uuid"],
   "questionCount": 10,
+  "attemptCount": 24,
+  "resultsReleaseMode": "MANUAL",
+  "resultsReleasedAt": null,
+  "showCorrectAnswers": false,
   "createdAt": "2026-11-17T10:00:00.000Z",
   "updatedAt": "2026-11-17T10:30:00.000Z"
 }
@@ -163,9 +167,16 @@ El DTO docente puede incluir respuestas correctas y fracciones de crédito.
   "hasInProgress": false,
   "questionCount": 8,
   "totalPoints": 10,
+  "lastAttemptId": null,
+  "lastAttemptStatus": null,
+  "lastAttemptScore": null,
+  "lastAttemptMaxScore": null,
+  "resultAvailable": false,
   "canStart": true
 }
 ```
+
+`lastAttempt*` describe el intento más reciente del alumno (excluye `CANCELLED`). `resultAvailable` es `true` cuando ese intento está `GRADED` y los resultados están liberados; en ese caso `lastAttemptScore`/`lastAttemptMaxScore` traen el puntaje.
 
 ### 4.4 Detalle de examen para alumno
 
@@ -224,6 +235,7 @@ Incluye las preguntas y opciones, pero **nunca**:
   "startedAt": "2026-11-20T12:00:00.000Z",
   "deadlineAt": "2026-11-20T13:30:00.000Z",
   "submittedAt": null,
+  "gradedAt": null,
   "totalScore": null,
   "maxScore": null,
   "resultsReleased": false
@@ -232,27 +244,43 @@ Incluye las preguntas y opciones, pero **nunca**:
 
 ### 4.6 Resultado
 
-Solo se devuelve si el examen está corregido y los resultados fueron liberados según `ResultsReleaseMode`/`ResultsReleasedAt`.
+Solo se devuelve si el intento está `GRADED` y los resultados fueron liberados según `ResultsReleaseMode`/`ResultsReleasedAt`.
 
 ```json
 {
   "attemptId": "uuid",
+  "examId": "uuid",
   "status": "GRADED",
   "totalScore": 8.5,
   "maxScore": 10,
   "percentage": 85,
   "showCorrectAnswers": true,
+  "submittedAt": "2026-11-20T13:20:00.000Z",
+  "gradedAt": "2026-11-20T13:20:01.000Z",
   "answers": [
     {
       "examVersionQuestionId": "uuid",
+      "position": 1,
+      "type": "SINGLE_CHOICE",
+      "statement": "¿Qué es una API REST?",
       "awardedPoints": 2,
       "maxPoints": 2,
       "isCorrect": true,
-      "correctOptionIds": ["uuid"]
+      "responseText": null,
+      "selectedOptionIds": ["uuid"],
+      "correctOptionIds": ["uuid"],
+      "options": [
+        { "id": "uuid", "content": "Una interfaz HTTP", "position": 1, "selected": true }
+      ]
     }
   ]
 }
 ```
+
+- Incluye **todas** las preguntas de la versión, aunque el alumno no las haya respondido.
+- `awardedPoints` es `null` mientras la pregunta espera revisión manual.
+- `correctOptionIds` solo aparece si `Exams.ShowCorrectAnswers = 1`.
+- `options` nunca incluye `creditFraction`.
 
 ## 5. Endpoints del docente
 
@@ -265,7 +293,8 @@ Todos requieren `Authorization: Bearer <token>` y rol `TEACHER`.
 | `GET` | `/exams/:id` | Detalle del examen con preguntas y grupos. |
 | `PUT` | `/exams/:id` | Reemplaza el documento editable de un examen en `DRAFT`. |
 | `POST` | `/exams/:id/close` | Cierra el examen. |
-| `GET` | `/exams/:id/attempts` | Lista intentos de los alumnos (P1). |
+| `POST` | `/exams/:id/release-results` | Libera los resultados a los alumnos. |
+| `GET` | `/exams/:id/attempts` | Lista los intentos de los alumnos con sus puntajes. |
 
 ### 5.1 `POST /exams`
 
@@ -278,9 +307,13 @@ Body mínimo:
   "opensAt": "2026-11-20T12:00:00.000Z",
   "closesAt": "2026-11-20T14:00:00.000Z",
   "durationMinutes": 90,
-  "maxAttempts": 1
+  "maxAttempts": 1,
+  "resultsReleaseMode": "MANUAL",
+  "showCorrectAnswers": false
 }
 ```
+
+`resultsReleaseMode` acepta `IMMEDIATE`, `ON_CLOSE` o `MANUAL` (por defecto `MANUAL`). `showCorrectAnswers` es booleano (por defecto `false`).
 
 Respuesta `201`:
 
@@ -300,6 +333,8 @@ Reemplaza el documento editable. Solo se permite si el examen y la versión de t
   "closesAt": "2026-11-20T14:00:00.000Z",
   "durationMinutes": 90,
   "maxAttempts": 1,
+  "resultsReleaseMode": "MANUAL",
+  "showCorrectAnswers": false,
   "groupIds": ["uuid-grupo-propio"],
   "questions": [
     { "questionId": "uuid-pregunta-propia", "points": 2, "position": 1 }
@@ -324,7 +359,50 @@ Reglas:
 - No admite nuevos intentos.
 - Es idempotente: cerrar un examen ya cerrado responde `200` con `status: "CLOSED"`.
 - Un examen en `DRAFT` no se puede cerrar (`409`).
-- Los intentos `IN_PROGRESS` deben cerrarse o autoentregarse (P1).
+- Cerrar no cancela los intentos en curso: los que ya vencieron se autoentregan al consultarse, y el resto puede seguir hasta su `DeadlineAt` o entregarse manualmente.
+
+### 5.5 `POST /exams/:id/release-results`
+
+- Solo el docente propietario.
+- Marca `Exams.ResultsReleasedAt` con la fecha actual.
+- Es idempotente: conserva la primera fecha de liberación.
+- Un examen en `DRAFT` responde `409`.
+
+```json
+{
+  "id": "uuid",
+  "status": "CLOSED",
+  "resultsReleaseMode": "MANUAL",
+  "resultsReleasedAt": "2026-11-21T10:00:00.000Z"
+}
+```
+
+Los modos `IMMEDIATE` y `ON_CLOSE` no necesitan esta llamada: el resultado se habilita al corregirse el intento o al cerrarse el examen, respectivamente.
+
+### 5.6 `GET /exams/:id/attempts`
+
+Devuelve los intentos del examen ordenados por inicio descendente:
+
+```json
+[
+  {
+    "attemptId": "uuid",
+    "studentId": "uuid",
+    "studentName": "Ana Pérez",
+    "studentEmail": "ana@example.com",
+    "attemptNumber": 1,
+    "status": "GRADED",
+    "startedAt": "2026-11-20T12:00:00.000Z",
+    "submittedAt": "2026-11-20T13:20:00.000Z",
+    "totalScore": 8.5,
+    "maxScore": 10,
+    "gradedAt": "2026-11-20T13:20:01.000Z"
+  }
+]
+```
+
+- Solo el docente propietario del examen.
+- Incluye el puntaje aunque los resultados todavía no estén liberados a los alumnos.
 
 ## 6. Endpoints del alumno
 
@@ -423,35 +501,57 @@ Respuesta `200`:
 ```json
 {
   "attemptId": "uuid",
-  "status": "SUBMITTED",
-  "submittedAt": "2026-11-20T13:20:00.000Z"
+  "status": "GRADED",
+  "submittedAt": "2026-11-20T13:20:00.000Z",
+  "resultAvailable": true
 }
 ```
 
 Reglas:
 
 - Solo el alumno propietario.
-- Si está `IN_PROGRESS`, lo pasa a `SUBMITTED`.
+- Si está `IN_PROGRESS`, lo pasa a `SUBMITTED` y dispara la corrección automática.
 - Si ya fue entregado (`SUBMITTED`, `GRADING` o `GRADED`), responde idempotentemente con el estado actual.
 - Un intento `CANCELLED` responde `409`.
 - Si se entrega después de `DeadlineAt`, se marca `IsAutoSubmitted = 1`.
-- No calcula `TotalScore`/`MaxScore`: la corrección automática/manual queda para P1.
+- `status` refleja el resultado de la corrección: `GRADED` si todas las preguntas son automáticas, `GRADING` si alguna requiere revisión manual.
+- `resultAvailable` es `true` sólo si el intento quedó `GRADED` y los resultados están liberados.
 - No permite modificar respuestas después.
 
 ### 6.5 `GET /attempts/:id`
 
-Devuelve el estado del intento (`attemptId`, `examId`, `examVersionId`, `attemptNumber`, `status`, `startedAt`, `deadlineAt`, `submittedAt`, `totalScore`, `maxScore`, `resultsReleased`) más `answers` con las respuestas guardadas.
+Devuelve el estado del intento (`attemptId`, `examId`, `examVersionId`, `attemptNumber`, `status`, `startedAt`, `deadlineAt`, `submittedAt`, `gradedAt`, `totalScore`, `maxScore`, `resultsReleased`) más `answers` con las respuestas guardadas.
 
 - Solo el alumno propietario; ajeno o inexistente → `404`.
-- Si el intento está `IN_PROGRESS` y venció, se autoentrega y se devuelve como `SUBMITTED`.
+- Si el intento está `IN_PROGRESS` y venció, se autoentrega, se corrige y se devuelve como `GRADED` o `GRADING`.
+- Un intento `SUBMITTED` se corrige al consultarlo (corrección diferida idempotente).
 - `totalScore` y `maxScore` se devuelven en `null` hasta que los resultados estén liberados.
 
 ### 6.6 `GET /attempts/:id/result`
 
 - Requiere que el intento esté `GRADED` y que los resultados estén liberados según `ResultsReleaseMode`/`ResultsReleasedAt`.
-- Si todavía no está corregido o no fue liberado, responde `409`.
+- Un intento `IN_PROGRESS` responde `409`; un intento `SUBMITTED` se corrige antes de responder.
+- Si la corrección todavía está pendiente (`GRADING`) o los resultados no fueron liberados, responde `409`.
 - `correctOptionIds` solo se incluye si `Exams.ShowCorrectAnswers = 1`.
-- P1: la corrección automática/manual todavía no genera `GRADED`; el endpoint queda preparado para esa etapa.
+- Incluye todas las preguntas de la versión, incluidas las no respondidas.
+
+### 6.7 Corrección automática
+
+La corrección se ejecuta al entregar el intento y también de forma diferida cuando el intento se consulta o se pide su resultado.
+
+| Tipo | Regla |
+|---|---|
+| `SINGLE_CHOICE`, `TRUE_FALSE` | `puntos × CreditFraction` de la opción elegida. |
+| `MULTIPLE_CHOICE` | `puntos × suma de CreditFraction` de las opciones elegidas, limitado a `[0, puntos]`. Los créditos negativos restan. |
+| `SHORT_TEXT` | Puntaje completo si el texto coincide con alguna de `contentJson.acceptedAnswers`; si no, `0`. |
+| `ESSAY` y tipos no usados | Quedan en revisión manual (`GradingStatus = MANUAL_REVIEW`) y el intento pasa a `GRADING`. |
+
+- La comparación de `SHORT_TEXT` recorta espacios, colapsa espacios internos y respeta `gradingConfigJson.caseSensitive`.
+- Una pregunta sin responder se califica con `0` automáticamente, sin pasar por revisión manual.
+- `MaxScore` es la suma de `ExamVersionQuestions.Points` de la versión del intento.
+- `TotalScore` suma los puntos automáticos obtenidos. Si queda alguna pregunta en revisión manual, el intento no pasa a `GRADED`.
+- Las calificaciones se guardan en `AnswerGrades` y el estado por respuesta en `AttemptAnswers.GradingStatus`.
+- La corrección es idempotente: sólo se ejecuta sobre intentos `SUBMITTED`.
 
 ## 7. Formato de errores
 

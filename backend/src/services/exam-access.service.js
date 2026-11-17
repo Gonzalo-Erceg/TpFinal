@@ -81,11 +81,32 @@ class ExamAccessService {
                       AND a.ExamId = e.Id
                       AND a.Status = 'IN_PROGRESS'
                       AND a.DeadlineAt > SYSUTCDATETIME()
-                ) THEN 1 ELSE 0 END AS HasInProgress
+                ) THEN 1 ELSE 0 END AS HasInProgress,
+                ultimo.Id AS LastAttemptId,
+                ultimo.Status AS LastAttemptStatus,
+                ultimo.TotalScore AS LastAttemptTotalScore,
+                ultimo.MaxScore AS LastAttemptMaxScore,
+                ultimo.SubmittedAt AS LastAttemptSubmittedAt
             FROM Exams e ${lockHint}
             JOIN ExamVersions v
               ON v.ExamId = e.Id
              AND v.Status = 'PUBLISHED'
+            OUTER APPLY (
+                SELECT TOP 1
+                    a.Id,
+                    a.Status,
+                    a.TotalScore,
+                    a.MaxScore,
+                    a.SubmittedAt
+                FROM ExamAttempts a
+                WHERE a.StudentId = @studentId
+                  AND a.Status <> 'CANCELLED'
+                  AND (
+                      (e.AttemptsScope = 'EXAM' AND a.ExamId = e.Id)
+                      OR (e.AttemptsScope = 'VERSION' AND a.ExamVersionId = v.Id)
+                  )
+                ORDER BY a.StartedAt DESC
+            ) ultimo
             WHERE e.Status IN ('PUBLISHED', 'SCHEDULED')
               AND (e.PublishAt IS NULL OR e.PublishAt <= SYSUTCDATETIME())
               AND (e.OpensAt IS NULL OR e.OpensAt <= SYSUTCDATETIME())

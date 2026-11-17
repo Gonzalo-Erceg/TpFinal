@@ -1,6 +1,7 @@
 const ExamAccessService = require('./exam-access.service');
 const StudentExamsRepository = require('../repositories/student-exams.repository');
 const AuthError = require('../utils/auth-error');
+const { calificarPregunta } = require('./grading.service');
 
 const examAccessService = new ExamAccessService();
 const studentExamsRepository = new StudentExamsRepository();
@@ -55,7 +56,7 @@ function resultadosLiberados(attempt) {
     }
 
     if (attempt.ResultsReleaseMode === 'IMMEDIATE') {
-        return attempt.Status === 'GRADED' || attempt.TotalScore !== null;
+        return attempt.Status === 'GRADED';
     }
 
     return false;
@@ -69,6 +70,14 @@ function aDisponible(row) {
     const tieneIntentoEnCurso = Boolean(row.HasInProgress);
     const puedeIniciar = tieneDeadline &&
         (tieneIntentoEnCurso || maxAttempts === null || attemptsUsed < maxAttempts);
+
+    const ultimoEntregado = row.LastAttemptStatus === 'GRADED' && resultadosLiberados({
+        Status: row.LastAttemptStatus,
+        TotalScore: row.LastAttemptTotalScore,
+        ExamStatus: row.Status,
+        ResultsReleaseMode: row.ResultsReleaseMode,
+        ResultsReleasedAt: row.ResultsReleasedAt,
+    });
 
     return {
         id: row.Id,
@@ -84,6 +93,11 @@ function aDisponible(row) {
         hasInProgress: tieneIntentoEnCurso,
         questionCount: Number(row.QuestionCount ?? 0),
         totalPoints: Number(row.TotalPoints ?? 0),
+        lastAttemptId: row.LastAttemptId ?? null,
+        lastAttemptStatus: row.LastAttemptStatus ?? null,
+        lastAttemptScore: ultimoEntregado ? aNumero(row.LastAttemptTotalScore) : null,
+        lastAttemptMaxScore: ultimoEntregado ? aNumero(row.LastAttemptMaxScore) : null,
+        resultAvailable: ultimoEntregado,
         canStart: puedeIniciar,
     };
 }
@@ -157,6 +171,7 @@ function aIntento(row, respuestas = null) {
         startedAt: aIso(row.StartedAt),
         deadlineAt: aIso(row.DeadlineAt),
         submittedAt: aIso(row.SubmittedAt),
+        gradedAt: aIso(row.GradedAt),
         totalScore: liberado ? aNumero(row.TotalScore) : null,
         maxScore: liberado ? aNumero(row.MaxScore) : null,
         resultsReleased: liberado,
@@ -231,6 +246,91 @@ function normalizarRespuesta(body, tipo) {
     return { text: null, optionIds: unicas };
 }
 
+function aPreguntasParaCorregir(rows) {
+    const preguntas = new Map();
+
+    for (const row of rows) {
+        let pregunta = preguntas.get(row.ExamVersionQuestionId);
+
+        if (!pregunta) {
+            pregunta = {
+                examVersionQuestionId: row.ExamVersionQuestionId,
+                answerId: row.AnswerId ?? null,
+                answered: row.AnswerId !== null && row.AnswerId !== undefined,
+                questionType: row.QuestionType,
+                points: Number(row.Points),
+                contentJson: row.ContentJson ?? null,
+                gradingConfigJson: row.GradingConfigJson ?? null,
+                responseText: row.ResponseText ?? null,
+                selectedOptionIds: [],
+                options: [],
+            };
+
+            preguntas.set(row.ExamVersionQuestionId, pregunta);
+        }
+
+        if (row.OptionId) {
+            pregunta.selectedOptionIds.push(row.OptionId);
+            pregunta.options.push({
+                id: row.OptionId,
+                creditFraction: Number(row.CreditFraction),
+            });
+        }
+    }
+
+    return [...preguntas.values()];
+}
+
+function aResultado(rows, mostrarCorrectas) {
+    const preguntas = new Map();
+
+    for (const row of rows) {
+        let pregunta = preguntas.get(row.ExamVersionQuestionId);
+
+        if (!pregunta) {
+            const awardedPoints = aNumero(row.AwardedPoints) ?? 0;
+            const maxPoints = Number(row.MaxPoints);
+
+            pregunta = {
+                examVersionQuestionId: row.ExamVersionQuestionId,
+                position: row.Position,
+                type: row.QuestionType,
+                statement: row.Statement,
+                awardedPoints,
+                maxPoints,
+                isCorrect: awardedPoints !== null && Math.abs(awardedPoints - maxPoints) < 0.000001,
+                responseText: row.ResponseText ?? null,
+                selectedOptionIds: [],
+                correctOptionIds: [],
+                options: [],
+            };
+
+            preguntas.set(row.ExamVersionQuestionId, pregunta);
+        }
+
+        if (row.OptionId) {
+            const elegida = Boolean(row.Selected);
+
+            pregunta.options.push({
+                id: row.OptionId,
+                content: row.OptionContent,
+                position: row.OptionPosition,
+                selected: elegida,
+            });
+
+            if (elegida) {
+                pregunta.selectedOptionIds.push(row.OptionId);
+            }
+
+            if (mostrarCorrectas && Number(row.CreditFraction) > 0) {
+                pregunta.correctOptionIds.push(row.OptionId);
+            }
+        }
+    }
+
+    return [...preguntas.values()];
+}
+
 class StudentExamsService {
 
     async listAvailable(user) {
@@ -296,6 +396,10 @@ class StudentExamsService {
 
         if (intento.Status === 'IN_PROGRESS' && estaVencido(intento.DeadlineAt)) {
             await studentExamsRepository.expireAttempt(attemptId);
+            await this.gradeAttempt(attemptId);
+            intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+        } else if (intento.Status === 'SUBMITTED') {
+            await this.gradeAttempt(attemptId);
             intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
         }
 
@@ -404,43 +508,103 @@ class StudentExamsService {
             throw new AuthError('El intento no existe', 404);
         }
 
-        if (intento.Status !== 'IN_PROGRESS') {
-            if (ESTADOS_ENTREGADOS.includes(intento.Status)) {
-                return {
-                    attemptId: intento.Id,
-                    status: intento.Status,
-                    submittedAt: aIso(intento.SubmittedAt),
-                };
-            }
+        if (intento.Status === 'IN_PROGRESS') {
+            const actualizado = await studentExamsRepository.submitAttempt(attemptId, user.id);
 
+            if (!actualizado) {
+                const actual = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+
+                if (!actual || !ESTADOS_ENTREGADOS.includes(actual.Status)) {
+                    throw new AuthError('No se pudo entregar el intento', 409);
+                }
+            }
+        } else if (!ESTADOS_ENTREGADOS.includes(intento.Status)) {
             throw new AuthError('El intento no se puede entregar en su estado actual', 409);
         }
 
-        const actualizado = await studentExamsRepository.submitAttempt(attemptId, user.id);
+        await this.gradeAttempt(attemptId);
 
-        if (!actualizado) {
-            const actual = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+        const actual = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
 
-            if (!actual) {
-                throw new AuthError('El intento no existe', 404);
-            }
-
-            if (ESTADOS_ENTREGADOS.includes(actual.Status)) {
-                return {
-                    attemptId: actual.Id,
-                    status: actual.Status,
-                    submittedAt: aIso(actual.SubmittedAt),
-                };
-            }
-
-            throw new AuthError('No se pudo entregar el intento', 409);
+        if (!actual) {
+            throw new AuthError('El intento no existe', 404);
         }
 
         return {
-            attemptId: actualizado.Id,
-            status: actualizado.Status,
-            submittedAt: aIso(actualizado.SubmittedAt),
+            attemptId: actual.Id,
+            status: actual.Status,
+            submittedAt: aIso(actual.SubmittedAt),
+            resultAvailable: actual.Status === 'GRADED' && resultadosLiberados(actual),
         };
+    }
+
+    async gradeAttempt(attemptId) {
+        return studentExamsRepository.withTransaction(async (transaction) => {
+            const intento = await studentExamsRepository.findAttemptForGrading(attemptId, transaction);
+
+            if (!intento) {
+                return null;
+            }
+
+            if (intento.Status !== 'SUBMITTED') {
+                return {
+                    status: intento.Status,
+                    totalScore: aNumero(intento.TotalScore),
+                    maxScore: aNumero(intento.MaxScore),
+                };
+            }
+
+            const filas = await studentExamsRepository.findGradingQuestions(
+                attemptId,
+                intento.ExamVersionId,
+                transaction
+            );
+
+            const preguntas = aPreguntasParaCorregir(filas);
+
+            let totalScore = 0;
+            let maxScore = 0;
+            let requiereRevision = false;
+
+            const calificaciones = preguntas.map((pregunta) => {
+                const calificacion = calificarPregunta(pregunta);
+
+                maxScore += pregunta.points;
+
+                if (calificacion.awardedPoints !== null) {
+                    totalScore += calificacion.awardedPoints;
+                }
+
+                if (calificacion.gradingStatus === 'MANUAL_REVIEW') {
+                    requiereRevision = true;
+                }
+
+                return {
+                    answerId: pregunta.answerId,
+                    gradingStatus: calificacion.gradingStatus,
+                    awardedPoints: calificacion.awardedPoints,
+                };
+            });
+
+            totalScore = Math.round(totalScore * 100) / 100;
+            maxScore = Math.round(maxScore * 100) / 100;
+
+            const status = requiereRevision ? 'GRADING' : 'GRADED';
+
+            await studentExamsRepository.replaceGrades(transaction, attemptId, calificaciones);
+
+            const actualizado = await studentExamsRepository.completeGrading(transaction, attemptId, {
+                status,
+                totalScore,
+                maxScore,
+            });
+
+            return {
+                status: actualizado?.Status ?? status,
+                totalScore: aNumero(actualizado?.TotalScore ?? totalScore),
+                maxScore: aNumero(actualizado?.MaxScore ?? maxScore),
+            };
+        });
     }
 
     async getResult(attemptId, user) {
@@ -448,10 +612,28 @@ class StudentExamsService {
             throw new AuthError('El intento no existe', 404);
         }
 
-        const intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+        let intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
 
         if (!intento) {
             throw new AuthError('El intento no existe', 404);
+        }
+
+        if (intento.Status === 'IN_PROGRESS' && estaVencido(intento.DeadlineAt)) {
+            await studentExamsRepository.expireAttempt(attemptId);
+            intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+        }
+
+        if (intento.Status === 'IN_PROGRESS') {
+            throw new AuthError('El intento todavía no fue entregado', 409);
+        }
+
+        if (intento.Status === 'SUBMITTED') {
+            await this.gradeAttempt(attemptId);
+            intento = await studentExamsRepository.findAttemptWithExam(attemptId, user.id);
+        }
+
+        if (intento.Status === 'GRADING') {
+            throw new AuthError('La corrección todavía está pendiente', 409);
         }
 
         if (intento.Status !== 'GRADED') {
@@ -462,30 +644,8 @@ class StudentExamsService {
             throw new AuthError('Los resultados todavía no están disponibles', 409);
         }
 
-        const filas = await studentExamsRepository.findResultRows(attemptId);
-        const respuestas = new Map();
-
-        for (const fila of filas) {
-            let respuesta = respuestas.get(fila.ExamVersionQuestionId);
-
-            if (!respuesta) {
-                const awardedPoints = aNumero(fila.AwardedPoints);
-
-                respuesta = {
-                    examVersionQuestionId: fila.ExamVersionQuestionId,
-                    awardedPoints,
-                    maxPoints: Number(fila.MaxPoints),
-                    isCorrect: awardedPoints !== null && awardedPoints === Number(fila.MaxPoints),
-                    correctOptionIds: [],
-                };
-
-                respuestas.set(fila.ExamVersionQuestionId, respuesta);
-            }
-
-            if (fila.CorrectOptionId && intento.ShowCorrectAnswers) {
-                respuesta.correctOptionIds.push(fila.CorrectOptionId);
-            }
-        }
+        const filas = await studentExamsRepository.findResultRows(attemptId, intento.ExamVersionId);
+        const mostrarCorrectas = Boolean(intento.ShowCorrectAnswers);
 
         const totalScore = aNumero(intento.TotalScore);
         const maxScore = aNumero(intento.MaxScore);
@@ -495,12 +655,15 @@ class StudentExamsService {
 
         return {
             attemptId: intento.Id,
+            examId: intento.ExamId,
             status: intento.Status,
             totalScore,
             maxScore,
             percentage,
-            showCorrectAnswers: Boolean(intento.ShowCorrectAnswers),
-            answers: [...respuestas.values()],
+            showCorrectAnswers: mostrarCorrectas,
+            submittedAt: aIso(intento.SubmittedAt),
+            gradedAt: aIso(intento.GradedAt),
+            answers: aResultado(filas, mostrarCorrectas),
         };
     }
 }

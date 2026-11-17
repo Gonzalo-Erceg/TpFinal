@@ -88,6 +88,7 @@ class StudentExamsRepository {
                     a.IsAutoSubmitted,
                     a.TotalScore,
                     a.MaxScore,
+                    a.GradedAt,
                     e.Status AS ExamStatus,
                     e.ResultsReleaseMode,
                     e.ResultsReleasedAt,
@@ -332,24 +333,155 @@ class StudentExamsRepository {
         return result.recordset[0] ?? null;
     }
 
-    async findResultRows(attemptId) {
+    async findAttemptForGrading(attemptId, transaction) {
+        const result = await new sql.Request(transaction)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .query(`
+                SELECT
+                    a.Id,
+                    a.ExamId,
+                    a.ExamVersionId,
+                    a.StudentId,
+                    a.Status,
+                    a.StartedAt,
+                    a.DeadlineAt,
+                    a.SubmittedAt,
+                    a.IsAutoSubmitted,
+                    a.TotalScore,
+                    a.MaxScore,
+                    a.GradedAt
+                FROM ExamAttempts a WITH (UPDLOCK, HOLDLOCK)
+                WHERE a.Id = @attemptId
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findGradingQuestions(attemptId, examVersionId, transaction) {
+        const result = await new sql.Request(transaction)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .input('examVersionId', sql.UniqueIdentifier, examVersionId)
+            .query(`
+                SELECT
+                    evq.Id AS ExamVersionQuestionId,
+                    evq.Position,
+                    evq.Points,
+                    r.QuestionType,
+                    r.ContentJson,
+                    r.GradingConfigJson,
+                    aa.Id AS AnswerId,
+                    aa.ResponseText,
+                    o.Id AS OptionId,
+                    o.CreditFraction
+                FROM ExamVersionQuestions evq
+                JOIN QuestionRevisions r ON r.Id = evq.QuestionRevisionId
+                LEFT JOIN AttemptAnswers aa
+                    ON aa.AttemptId = @attemptId
+                   AND aa.ExamVersionQuestionId = evq.Id
+                LEFT JOIN AttemptAnswerOptions aao ON aao.AnswerId = aa.Id
+                LEFT JOIN QuestionOptions o
+                    ON o.Id = aao.OptionId
+                   AND o.QuestionRevisionId = r.Id
+                WHERE evq.ExamVersionId = @examVersionId
+                ORDER BY evq.Position, o.Position
+            `);
+
+        return result.recordset;
+    }
+
+    async replaceGrades(transaction, attemptId, calificaciones) {
+        await new sql.Request(transaction)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .query(`
+                DELETE FROM AnswerGrades
+                WHERE AnswerId IN (
+                    SELECT Id FROM AttemptAnswers WHERE AttemptId = @attemptId
+                )
+            `);
+
+        for (const calificacion of calificaciones) {
+            if (!calificacion.answerId) {
+                continue;
+            }
+
+            await new sql.Request(transaction)
+                .input('answerId', sql.UniqueIdentifier, calificacion.answerId)
+                .input('gradingStatus', sql.NVarChar(20), calificacion.gradingStatus)
+                .query(`
+                    UPDATE AttemptAnswers
+                    SET GradingStatus = @gradingStatus
+                    WHERE Id = @answerId
+                `);
+
+            if (calificacion.awardedPoints !== null) {
+                await new sql.Request(transaction)
+                    .input('answerId', sql.UniqueIdentifier, calificacion.answerId)
+                    .input('awardedPoints', sql.Decimal(10, 2), calificacion.awardedPoints)
+                    .query(`
+                        INSERT INTO AnswerGrades (AnswerId, AwardedPoints, GradingMethod)
+                        VALUES (@answerId, @awardedPoints, 'AUTOMATIC')
+                    `);
+            }
+        }
+    }
+
+    async completeGrading(transaction, attemptId, data) {
+        const result = await new sql.Request(transaction)
+            .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .input('status', sql.NVarChar(30), data.status)
+            .input('totalScore', sql.Decimal(10, 2), data.totalScore)
+            .input('maxScore', sql.Decimal(10, 2), data.maxScore)
+            .query(`
+                UPDATE ExamAttempts
+                SET Status = @status,
+                    TotalScore = @totalScore,
+                    MaxScore = @maxScore,
+                    GradedAt = CASE WHEN @status = 'GRADED' THEN SYSUTCDATETIME() ELSE NULL END
+                OUTPUT
+                    INSERTED.Id,
+                    INSERTED.Status,
+                    INSERTED.TotalScore,
+                    INSERTED.MaxScore,
+                    INSERTED.GradedAt
+                WHERE Id = @attemptId
+                  AND Status = 'SUBMITTED'
+            `);
+
+        return result.recordset[0] ?? null;
+    }
+
+    async findResultRows(attemptId, examVersionId) {
         const db = await pool;
 
         const result = await db.request()
             .input('attemptId', sql.UniqueIdentifier, attemptId)
+            .input('examVersionId', sql.UniqueIdentifier, examVersionId)
             .query(`
                 SELECT
-                    aa.ExamVersionQuestionId,
+                    evq.Id AS ExamVersionQuestionId,
+                    evq.Position,
                     evq.Points AS MaxPoints,
+                    r.QuestionType,
+                    r.Statement,
+                    aa.Id AS AnswerId,
+                    aa.ResponseText,
                     ag.AwardedPoints,
-                    o.Id AS CorrectOptionId
-                FROM AttemptAnswers aa
-                JOIN ExamVersionQuestions evq ON evq.Id = aa.ExamVersionQuestionId
+                    o.Id AS OptionId,
+                    o.Content AS OptionContent,
+                    o.Position AS OptionPosition,
+                    o.CreditFraction,
+                    CASE WHEN aao.OptionId IS NOT NULL THEN 1 ELSE 0 END AS Selected
+                FROM ExamVersionQuestions evq
+                JOIN QuestionRevisions r ON r.Id = evq.QuestionRevisionId
+                LEFT JOIN AttemptAnswers aa
+                    ON aa.AttemptId = @attemptId
+                   AND aa.ExamVersionQuestionId = evq.Id
                 LEFT JOIN AnswerGrades ag ON ag.AnswerId = aa.Id
-                LEFT JOIN QuestionOptions o
-                    ON o.QuestionRevisionId = evq.QuestionRevisionId
-                   AND o.CreditFraction = 1
-                WHERE aa.AttemptId = @attemptId
+                LEFT JOIN QuestionOptions o ON o.QuestionRevisionId = r.Id
+                LEFT JOIN AttemptAnswerOptions aao
+                    ON aao.AnswerId = aa.Id
+                   AND aao.OptionId = o.Id
+                WHERE evq.ExamVersionId = @examVersionId
                 ORDER BY evq.Position, o.Position
             `);
 

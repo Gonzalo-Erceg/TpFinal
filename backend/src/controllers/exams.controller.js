@@ -59,6 +59,24 @@ class ExamsController {
             sendError(res, error);
         }
     }
+
+    async releaseResults(req, res) {
+        try {
+            const result = await examsService.releaseResults(req.params.id, req.user);
+            res.status(200).json(result);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async listAttempts(req, res) {
+        try {
+            const intentos = await examsService.listAttempts(req.params.id, req.user);
+            res.status(200).json(intentos);
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
 }
 
 module.exports = ExamsController;
